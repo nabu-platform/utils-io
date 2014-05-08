@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public class TestUnwrap extends TestCase {
 	
 	public void testUnwrap() throws IOException {
-		ReadableContainer<CharBuffer> chars = IOUtils.wrap("tést");
+		ReadableContainer<CharBuffer> chars = IOUtils.wrap("tÃ©st");
 		ReadableContainer<ByteBuffer> bytes = IOUtils.unwrap(chars, Charset.forName("UTF-8"));
 		byte [] array = IOUtils.toBytes(bytes);
 		assertEquals(5, array.length);

@@ -12,7 +12,7 @@ import junit.framework.TestCase;
 public class TestFileWrapper extends TestCase {
 	public void testFileWrapper() throws IOException {
 		File target = File.createTempFile("test", ".txt");
-		String testString = "writing some spÈcial ch‰ractËrs";
+		String testString = "writing some sp√©cial ch√§ract√®rs";
 		
 		Container<ByteBuffer> bytes = IOUtils.wrap(target);
 		Container<CharBuffer> chars = IOUtils.wrap(bytes, Charset.forName("UTF-8"));
@@ -29,7 +29,7 @@ public class TestFileWrapper extends TestCase {
 	
 	public void testBufferedFileWrapper() throws IOException {
 		File target = File.createTempFile("test", ".txt");
-		String testString = "writing some spÈcial ch‰ractËrs";
+		String testString = "writing some sp√©cial ch√§ract√®rs";
 		
 		Container<ByteBuffer> bytes = IOUtils.wrap(target);
 		bytes = IOUtils.wrap(
