@@ -9,7 +9,7 @@ import junit.framework.TestCase;
 public class TestUnwrap extends TestCase {
 	
 	public void testUnwrap() {
-		ReadableCharContainer chars = IOUtils.wrap("tÃ©st");
+		ReadableCharContainer chars = IOUtils.wrap("tést");
 		ReadableByteContainer bytes = IOUtils.unwrap(chars, Charset.forName("UTF-8"));
 		byte [] array = IOUtils.toBytes(bytes);
 		assertEquals(5, array.length);
