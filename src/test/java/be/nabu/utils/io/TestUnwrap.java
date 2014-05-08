@@ -1,16 +1,18 @@
 package be.nabu.utils.io;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 
-import be.nabu.utils.io.api.ReadableByteContainer;
-import be.nabu.utils.io.api.ReadableCharContainer;
+import be.nabu.utils.io.api.ByteBuffer;
+import be.nabu.utils.io.api.CharBuffer;
+import be.nabu.utils.io.api.ReadableContainer;
 import junit.framework.TestCase;
 
 public class TestUnwrap extends TestCase {
 	
-	public void testUnwrap() {
-		ReadableCharContainer chars = IOUtils.wrap("t�st");
-		ReadableByteContainer bytes = IOUtils.unwrap(chars, Charset.forName("UTF-8"));
+	public void testUnwrap() throws IOException {
+		ReadableContainer<CharBuffer> chars = IOUtils.wrap("t�st");
+		ReadableContainer<ByteBuffer> bytes = IOUtils.unwrap(chars, Charset.forName("UTF-8"));
 		byte [] array = IOUtils.toBytes(bytes);
 		assertEquals(5, array.length);
 		assertEquals(116, (int) array[0] & 0xff);
@@ -21,11 +23,11 @@ public class TestUnwrap extends TestCase {
 		assertEquals(116, (int) array[4] & 0xff);
 	}
 	
-	public void testComplexUnwrap() {
+	public void testComplexUnwrap() throws IOException {
 		String string = "^$ùµéèá´~/test╥╫a▌æjmlkjzareiuazerpoijmjllkq╥▓Æqsdfqsdfqsdfp^pooppazersìq";
-		ReadableCharContainer chars = IOUtils.wrap(string);
-		ReadableByteContainer bytes = IOUtils.unwrap(chars, Charset.forName("UTF-8"));
-		ReadableCharContainer charsAgain = IOUtils.wrap(bytes, Charset.forName("UTF-8"));
+		ReadableContainer<CharBuffer> chars = IOUtils.wrap(string);
+		ReadableContainer<ByteBuffer> bytes = IOUtils.unwrap(chars, Charset.forName("UTF-8"));
+		ReadableContainer<CharBuffer> charsAgain = IOUtils.wrapReadable(bytes, Charset.forName("UTF-8"));
 		assertEquals(string, IOUtils.toString(charsAgain));
 	}
 }

@@ -1,5 +1,6 @@
 package be.nabu.utils.io;
 
+import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -9,40 +10,41 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import be.nabu.utils.io.api.ByteContainer;
+import be.nabu.utils.io.api.ByteBuffer;
+import be.nabu.utils.io.api.Container;
 
 /**
  * Note that this is not actual a runnable testcase because available of network (with or without proxy) is not a given
  * The code is however tested in a specific environment and should provide a clue as to how it should work
  */
-public class TestSocket {
+public class TestSocket { // extends TestCase
 	
-	public void testProxy() throws KeyManagementException, NoSuchAlgorithmException {
+	public void testProxy() throws KeyManagementException, NoSuchAlgorithmException, IOException {
 		// let's try google
 		String host = "google.com";
 		int port = 443;
-		
+		String proxy = "<proxy>";
 		// first connect to a proxy
-		ByteContainer proxySocket = IOUtils.connect("<proxy>", 8080);
-		// request a tunnel to google
-		IOUtils.copy(
+		Container<ByteBuffer> proxySocket = IOUtils.connect(proxy, 8080);
+		// request a tunnel to host
+		IOUtils.copyBytes(
 			IOUtils.wrap(("CONNECT " + host + ":" + port + " HTTP/1.1\r\n"
 					+ "Host: " + host + "\r\n"
 					+ "Proxy-Connection: Keep-Alive\r\n"
-					+ "\r\n").getBytes()),
+					+ "\r\n").getBytes(), true),
 			IOUtils.blockUntilWritten(proxySocket)
 		);
 		
-		// let's check the reply of the proxy server, should validate that it sends back HTTP/1.1 200 Connection Established
+		// let's check the reply of the proxy server, we should validate that it sends back HTTP/1.1 200 Connection Established
 		System.out.println(new String(IOUtils.toBytes(proxySocket)));
 		
 		// starts ssl in client mode
-		ByteContainer secureSocket = IOUtils.wrapSSL(proxySocket, createTrustAllContext(), true);
+		Container<ByteBuffer> secureSocket = IOUtils.secure(proxySocket, createTrustAllContext(), true);
 		
 		// write a GET request for the root
-		IOUtils.copy(	
+		IOUtils.copyBytes(	
 			IOUtils.wrap(("GET / HTTP/1.1\r\nHost: " + host + "\r\n"
-					+ "\r\n").getBytes()), 
+					+ "\r\n").getBytes(), true), 
 			IOUtils.blockUntilWritten(secureSocket)
 		);
 		
@@ -50,7 +52,7 @@ public class TestSocket {
 		// in my test it returned "HTTP/1.1 301 Moved Permanently" with a few more headers and a basic html page
 		System.out.println(new String(IOUtils.toBytes(IOUtils.blockUntilRead(secureSocket))));
 
-		IOUtils.close(secureSocket);
+		secureSocket.close();
 	}
 	
 	public static X509TrustManager createTrustAllManager() {

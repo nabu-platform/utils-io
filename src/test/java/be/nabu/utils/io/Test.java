@@ -5,76 +5,68 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
+import be.nabu.utils.io.api.ByteBuffer;
+import be.nabu.utils.io.api.CharBuffer;
+import be.nabu.utils.io.api.Container;
+import be.nabu.utils.io.api.MarkableContainer;
+import be.nabu.utils.io.api.PushbackContainer;
+import be.nabu.utils.io.buffers.bytes.DynamicByteBuffer;
+import be.nabu.utils.io.buffers.bytes.NioByteBufferWrapper;
+import be.nabu.utils.io.buffers.chars.DynamicCharBuffer;
 import junit.framework.TestCase;
-import be.nabu.utils.io.api.ByteContainer;
-import be.nabu.utils.io.api.CharContainer;
-import be.nabu.utils.io.api.IORuntimeException;
-import be.nabu.utils.io.api.LimitedReadableByteContainer;
-import be.nabu.utils.io.api.MarkableCharContainer;
-import be.nabu.utils.io.api.PushbackCharContainer;
-import be.nabu.utils.io.impl.BackedCharContainer;
-import be.nabu.utils.io.impl.ByteBufferWrapper;
-import be.nabu.utils.io.impl.DynamicByteContainer;
-import be.nabu.utils.io.impl.DynamicCharContainer;
+import static be.nabu.utils.io.IOUtils.*;
 
 public class Test extends TestCase {
 	
-	public void testSkip() {
-		DynamicCharContainer container = new DynamicCharContainer();
+	public void testSkip() throws IOException {
+		CharBuffer container = new DynamicCharBuffer();
 		container.write("test".toCharArray());
 		container.skip(2);
 		assertEquals("st", IOUtils.toString(container));
-		
-		container = new DynamicCharContainer(4);
+		container = new DynamicCharBuffer(4);
 		container.write("this is a slightly larger test".toCharArray());
 		container.skip(26);
 		assertEquals("test", IOUtils.toString(container));
-		
-		// use a non-skippable container
-		CharContainer container2 = IOUtils.wrap("test".toCharArray(), true);
-		IOUtils.skip(container2, 2);
-		assertEquals("st", IOUtils.toString(container2));
 	}
 	
-	public void testPushback() {
-		CharContainer container = IOUtils.newCharContainer();
-		PushbackCharContainer pushback = IOUtils.wrapPushback(container);
-		
+	public void testPushback() throws IOException {
+		CharBuffer container = newCharBuffer();
+		PushbackContainer<CharBuffer> pushback = pushback(container);
+
 		container.write("test".toCharArray());
 		assertEquals("test", IOUtils.toString(pushback));
 		
-		pushback.pushback("ge".toCharArray());
+		pushback.pushback(IOUtils.wrap("ge"));
 		assertEquals("ge", IOUtils.toString(pushback));
 		
 		container.write("test".toCharArray());
-		pushback.pushback("ge".toCharArray());
+		pushback.pushback(IOUtils.wrap("ge"));
 		assertEquals("getest", IOUtils.toString(pushback));
 	}
 	
-	public void testByteBufferWrapper() {
+	public void testByteBufferWrapper() throws IOException {
 		String string = "test";
-		CharContainer container = new BackedCharContainer(new ByteBufferWrapper(5), Charset.forName("ASCII"));
+		Container<CharBuffer> container = wrap(new NioByteBufferWrapper(5), Charset.forName("ASCII"));
 		
 		// test single write/read (written 4/5)
-		container.write(string.toCharArray());
+		container.write(wrap(string));
 		assertEquals(string, IOUtils.toString(container));
 
 		// test another single write/read (written 4/5) to see if it is cleaned up properly
-		container.write(string.toCharArray());
+		container.write(wrap(string));
 		assertEquals(string, IOUtils.toString(container));
-		
 		// write more than the fixed byte buffer can handle
 		try {
 			// writing 4/5
-			container.write(string.toCharArray());
+			container.write(wrap(string));
 			// actually wrote 5/5 and buffered 3
-			container.write(string.toCharArray());
+			container.write(wrap(string));
 			// wrote 5/5 and buffered 7
-			container.write(string.toCharArray());
+			container.write(wrap(string));
 			container.flush();
 			fail("The backing bytebuffer is full so we expect an error when flushing the data");
 		}
-		catch (IORuntimeException e) {
+		catch (IOException e) {
 			// we have 7 buffered but the backend is still full so we can't flush it
 			assertEquals("0/7", e.getMessage().replaceAll(".*?([0-9/]+).*", "$1"));
 		}
@@ -86,7 +78,7 @@ public class Test extends TestCase {
 		try {
 			container.flush();
 		}
-		catch (IORuntimeException e) {
+		catch (IOException e) {
 			// we have 7 buffered but the backend is still full so we still can't flush it
 			assertEquals("5/7", e.getMessage().replaceAll(".*?([0-9/]+).*", "$1"));
 		}
@@ -94,7 +86,7 @@ public class Test extends TestCase {
 		assertEquals(string.substring(1) + string.substring(0, 2), IOUtils.toString(container));
 		
 		// write "te", so it should now contain "stte"
-		container.write(string.substring(0, 2).toCharArray());
+		container.write(wrap(string.substring(0, 2)));
 		
 		assertEquals(string.substring(2) + string.substring(0, 2), IOUtils.toString(container));
 		
@@ -102,9 +94,9 @@ public class Test extends TestCase {
 		container.flush();
 		
 		// create a larger buffer to write more data
-		container = new BackedCharContainer(new ByteBufferWrapper(8), Charset.forName("ASCII"));
-		container.write(string.toCharArray());
-		container.write(string.toCharArray());
+		container = wrap(new NioByteBufferWrapper(8), Charset.forName("ASCII"));
+		container.write(wrap(string));
+		container.write(wrap(string));
 		assertEquals(string + string, IOUtils.toString(container));
 		
 		// make sure once everything is read, the next read returns nothing
@@ -112,25 +104,40 @@ public class Test extends TestCase {
 	}
 	
 	public void testReadOrWriteByteBuffer() throws UnsupportedEncodingException {
-		LimitedReadableByteContainer container = (LimitedReadableByteContainer) IOUtils.wrap("test".getBytes("ASCII"), true);
-		assertEquals(4, container.remainingData());
+		assertEquals(4, IOUtils.wrap("test".getBytes("ASCII"), true).remainingData());
 	}
 	
 	public void testReader() throws IOException {
 		String string = "this is a test";
-		CharContainer container = IOUtils.newCharContainer();
+		CharBuffer container = newCharBuffer();
 		container.write(string.toCharArray());
+		container.close();
 		int read = 0;
 		char [] buffer = new char[1024];
-		Reader reader = IOUtils.toReader(container);
+		Reader reader = toReader(container);
+		StringBuilder builder = new StringBuilder();
+		while ((read = reader.read(buffer)) != -1)
+			builder.append(new String(buffer, 0, read));
+		assertEquals(string, builder.toString());
+	}
+	
+	public void testSmallReader() throws IOException {
+		String string = "this is a test";
+		CharBuffer container = newCharBuffer();
+		container.write(string.toCharArray());
+		container.close();
+		int read = 0;
+		char [] buffer = new char[3];
+		Reader reader = toReader(container);
 		StringBuilder builder = new StringBuilder();
 		while ((read = reader.read(buffer)) != -1)
 			builder.append(new String(buffer, 0, read));
 		assertEquals(string, builder.toString());
 	}
 
-	public void testMarkable() {
-		DynamicByteContainer container = new DynamicByteContainer();
+
+	public void testMarkable() throws IOException {
+		DynamicByteBuffer container = new DynamicByteBuffer();
 		container.write("test".getBytes());
 		
 		container.mark();
@@ -145,23 +152,25 @@ public class Test extends TestCase {
 		catch (IllegalStateException e) {
 			// expected behavior, there is no mark
 		}
-		container = new DynamicByteContainer();
+		container = new DynamicByteBuffer();
 		container.write("test".getBytes());
 		container.mark();
-		container.moveMark(2);
 		container.reset();
-		assertEquals("st", new String(IOUtils.toBytes(container)));
+		assertEquals("test", new String(IOUtils.toBytes(container)));
 		container.close();
 	}
 	
-	public void testLimitedMarkable() {
-		MarkableCharContainer content = IOUtils.wrapMarkable(IOUtils.wrap("this is a test"), 4);
+	public void testLimitedMarkable() throws IOException {
+		MarkableContainer<CharBuffer> content = mark(IOUtils.wrap("this is a test"), 4);
 		content.mark();
 		char [] chars = new char[7];
-		content.read(chars, 0, 4);
+		// read the first 4 chars (= this)
+		content.read(wrap(chars, 0, 4, false));
 		assertEquals("this", new String(chars, 0, 4));
+		// reset to the start
 		content.reset();
-		content.read(chars);
+		// read 7 chars
+		content.read(wrap(chars, false));
 		assertEquals("this is", new String(chars));
 		try {
 			content.reset();
@@ -176,12 +185,10 @@ public class Test extends TestCase {
 	public void test1() throws IOException {
 		String string = "something new é!";
 		
-		ByteContainer bytes = IOUtils.newByteContainer();
-		// create a composed
-		bytes = IOUtils.wrap(bytes, bytes);
+		ByteBuffer bytes = newByteBuffer();
 
-		CharContainer container = IOUtils.wrap(bytes, Charset.forName("UTF-8"));
-		container.write(string.toCharArray());
+		Container<CharBuffer> container = IOUtils.wrap(bytes, Charset.forName("UTF-8"));
+		container.write(wrap(string));
 		container.close();
 		
 		assertEquals(string, IOUtils.toString(container));

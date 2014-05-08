@@ -1,11 +1,13 @@
 package be.nabu.utils.io;
 
-import be.nabu.utils.io.impl.CyclicByteContainer;
+import java.io.IOException;
+
+import be.nabu.utils.io.buffers.bytes.CyclicByteBuffer;
 import junit.framework.TestCase;
 
 public class TestCyclic extends TestCase {
-	public void testCyclic() {
-		CyclicByteContainer container = new CyclicByteContainer(2);
+	public void testCyclic() throws IOException {
+		CyclicByteBuffer container = new CyclicByteBuffer(2);
 		assertEquals(2, container.remainingSpace());
 		assertEquals(0, container.remainingData());
 		

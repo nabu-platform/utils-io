@@ -1,5 +1,5 @@
 package be.nabu.utils.io.api;
 
-public interface DelimitedCharContainer extends ReadableCharContainer {
+public interface DelimitedCharContainer extends ReadableContainer<CharBuffer> {
 	public boolean isDelimiterFound();
 }
