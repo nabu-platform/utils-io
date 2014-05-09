@@ -38,7 +38,7 @@ This simple example was pulled from the unit test for FileWrapper:
 
 ```java
 File target = File.createTempFile("test", ".txt");
-String testString = "writing some spécial chäractèrs";
+String testString = "writing some spï¿½cial chï¿½ractï¿½rs";
 	
 // creates a container around the file, if the file does not exist, it is not created until you write to it
 Container<ByteBuffer> bytes = IOUtils.wrap(target);
@@ -348,3 +348,5 @@ I am still in doubt which is the better approach but have decided to follow the 
 This would allow for large buffers to flush bit-by-bit to limited backends.
 
 2) Perhaps add a method "isBlocking()" to all containers.
+
+3) Add @java.lang.SafeVarargs where necessary once 8 is the standard
