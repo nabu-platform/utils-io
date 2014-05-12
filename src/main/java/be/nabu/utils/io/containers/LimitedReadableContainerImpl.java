@@ -41,7 +41,7 @@ public class LimitedReadableContainerImpl<T extends Buffer<T>> implements Limite
 		if (limitedBuffer != null)
 			limitedBuffer.truncate();
 		
-		if (limitedBuffer == null || limitedBuffer.remainingSpace() != target.remainingSpace() || remainingData() < target.remainingSpace())
+		if (limitedBuffer == null || limitedBuffer.remainingSpace() < target.remainingSpace() || remainingData() < target.remainingSpace())
 			limitedBuffer = target.getFactory().newInstance(Math.min(remainingData(), target.remainingSpace()), false);
 		
 		long read = parent.read(limitedBuffer);

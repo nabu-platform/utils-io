@@ -26,9 +26,8 @@ public class LimitedWritableContainerImpl<T extends Buffer<T>> implements Limite
 			if (limitedBuffer != null)
 				limitedBuffer.truncate();
 			
-			if (limitedBuffer == null || limitedBuffer.remainingSpace() != target.remainingSpace() || remainingSpace() < target.remainingData())
+			if (limitedBuffer == null || limitedBuffer.remainingSpace() < target.remainingData() || remainingSpace() < target.remainingData())
 				limitedBuffer = target.getFactory().newInstance(Math.min(remainingSpace(), target.remainingData()), false);
-			
 			written = target.read(limitedBuffer);
 			if (written > 0) {
 				parent.write(limitedBuffer);
