@@ -24,7 +24,8 @@ public class InputStreamWrapper implements ReadableContainer<ByteBuffer> {
 	public long read(ByteBuffer target) throws IOException {
 		long totalRead = 0;
 		while (target.remainingSpace() > 0) {
-			int read = input.read(buffer, 0, (int) Math.min(buffer.length, target.remainingSpace()));
+			int requestedData = (int) Math.min(buffer.length, target.remainingSpace());
+			int read = input.read(buffer, 0, requestedData);
 			if (read == -1) {
 				if (totalRead == 0)
 					totalRead = -1;
@@ -33,6 +34,12 @@ public class InputStreamWrapper implements ReadableContainer<ByteBuffer> {
 			else
 				totalRead += read;
 			target.write(buffer, 0, read);
+			// if you read less than you wanted, it may indicate the inputstream has no data left
+			// if we keep going we might hang, instead we break
+			// this gives the calling code the choice if reading again or stopping
+			// for example in some cases you know how much data you have to read
+			if (read < requestedData)
+				break;
 		}
 		return totalRead;
 	}

@@ -37,8 +37,7 @@ public class ReadableStraightByteToCharContainer implements ReadableContainer<Ch
 			else if (read == 0)
 				break;
 			singleChar[0] = (char) (singleByte[0] & 0xff);
-			target.write(singleChar);
-			totalRead++;
+			totalRead += target.write(singleChar);
 		}
 		return totalRead;
 	}

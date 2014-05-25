@@ -99,7 +99,7 @@ public class CyclicByteBuffer implements ByteBuffer, PeekableContainer<ByteBuffe
 
 	@Override
 	public long remainingData() {
-		int remainingData = 0;
+		long remainingData = 0;
 		int readPointer = this.readPointer;
 		boolean cycled = this.cycled;
 		int amountAvailable = 0;

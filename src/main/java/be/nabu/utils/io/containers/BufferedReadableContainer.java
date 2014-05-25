@@ -26,7 +26,7 @@ public class BufferedReadableContainer<T extends Buffer<T>> implements ReadableC
 		long totalRead = 0;
 		while (source.remainingSpace() > 0) {
 			if (buffer.remainingData() > 0)
-				totalRead += source.write(buffer);
+				totalRead += buffer.read(source);
 			else {
 				long read = parent.read(buffer);
 				if (read == -1) {

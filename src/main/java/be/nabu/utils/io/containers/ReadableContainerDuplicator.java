@@ -56,7 +56,6 @@ public class ReadableContainerDuplicator<T extends Buffer<T>> implements Readabl
 				throw new IOException("The target writable container did not have enough room to push the data to");
 			buffer.truncate();
 		}
-		
 		return totalRead == 0 && closed ? -1 : totalRead;
 	}
 }

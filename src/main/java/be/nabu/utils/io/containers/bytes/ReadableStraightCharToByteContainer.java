@@ -29,7 +29,7 @@ public class ReadableStraightCharToByteContainer implements ReadableContainer<By
 
 	@Override
 	public long read(ByteBuffer target) throws IOException {
-		int totalRead = 0;
+		long totalRead = 0;
 		while (target.remainingSpace() > 0) {
 			long read = chars.read(IOUtils.wrap(singleChar, false));
 			if (read == -1)
@@ -37,8 +37,7 @@ public class ReadableStraightCharToByteContainer implements ReadableContainer<By
 			else if (read == 0)
 				break;
 			singleByte[0] = (byte) (singleChar[0] & 0xff);
-			target.write(singleByte);
-			totalRead++;
+			totalRead += target.write(singleByte);
 		}
 		return totalRead;
 	}
