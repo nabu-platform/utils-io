@@ -21,7 +21,6 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 		IOUtils.close(Arrays.copyOfRange(sources, active, sources.length));
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public long read(T target) throws IOException {
 		long totalRead = 0;
@@ -34,10 +33,11 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 			}
 			long read = sources[active].read(target);
 			if (read <= 0) {
-				IOUtils.close(sources[active]);
+				sources[active].close();
 				active++;
 			}
-			totalRead += read;
+			else
+				totalRead += read;
 		}
 		return totalRead;
 	}
