@@ -42,7 +42,6 @@ public class BufferedReadableContainer<T extends Buffer<T>> implements ReadableC
 					parentMightBeEmpty = true;
 				else
 					parentMightBeEmpty = false;
-				System.out.println(buffer.remainingData() + "/" + buffer.remainingSpace());
 				if (read == -1) {
 					closed = true;
 					break;
