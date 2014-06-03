@@ -1,7 +1,6 @@
 package be.nabu.utils.io.containers;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.Buffer;
@@ -11,14 +10,16 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 
 	private ReadableContainer<T> [] sources;
 	private int active = 0;
+	private boolean closeIfRead = true;
 	
-	public ReadableContainerChainer(ReadableContainer<T>...sources) {
+	public ReadableContainerChainer(boolean closeIfRead, ReadableContainer<T>...sources) {
+		this.closeIfRead = closeIfRead;
 		this.sources = sources;
 	}
 	
 	@Override
 	public void close() throws IOException {
-		IOUtils.close(Arrays.copyOfRange(sources, active, sources.length));
+		IOUtils.close(sources);
 	}
 
 	@Override
@@ -32,7 +33,8 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 		else {
 			long read = sources[active].read(target);
 			if (read <= 0) {
-				sources[active].close();
+				if (closeIfRead)
+					sources[active].close();
 				active++;
 				return read(target);
 			}

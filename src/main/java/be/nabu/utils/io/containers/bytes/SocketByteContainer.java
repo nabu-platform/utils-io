@@ -13,8 +13,6 @@ public class SocketByteContainer extends ByteChannelContainer<SocketChannel> {
 	public SocketByteContainer(SocketAddress local, SocketAddress remote) throws IOException {
 		super(SocketChannel.open());
 		getChannel().configureBlocking(false);
-		if (local != null)
-			getChannel().bind(local);
 		getChannel().connect(remote);
 	}
 	

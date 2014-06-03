@@ -412,8 +412,8 @@ public class IOUtils {
 	public static <T extends Buffer<T>> WritableContainer<T> multicast(WritableContainer<T>...outputs) {
 		return new WritableContainerMulticaster<T>(outputs);
 	}
-	public static <T extends Buffer<T>> ReadableContainer<T> chain(ReadableContainer<T>...inputs) {
-		return new ReadableContainerChainer<T>(inputs);
+	public static <T extends Buffer<T>> ReadableContainer<T> chain(boolean closeIfRead, ReadableContainer<T>...inputs) {
+		return new ReadableContainerChainer<T>(closeIfRead, inputs);
 	}
 
 	public static Container<ByteBuffer> digest(WritableContainer<ByteBuffer> chainedOutput, MessageDigest digest) {
