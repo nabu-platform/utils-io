@@ -128,8 +128,8 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 	}
 	
 	@Override
-	public StaticByteBuffer duplicate() {
-		return new StaticByteBuffer(this, true);
+	public StaticByteBuffer duplicate(boolean duplicateState) {
+		return new StaticByteBuffer(this, duplicateState);
 	}
 	
 	@Override
@@ -154,7 +154,7 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 
 	@Override
 	public long peek(ByteBuffer buffer) throws IOException {
-		return buffer.write(duplicate());
+		return buffer.write(duplicate(true));
 	}
 	
 	@Override

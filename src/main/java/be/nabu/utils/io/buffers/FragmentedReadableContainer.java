@@ -14,7 +14,7 @@ import be.nabu.utils.io.api.PositionableContainer;
 import be.nabu.utils.io.api.ResettableContainer;
 import be.nabu.utils.io.api.SkippableContainer;
 
-public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T> & DuplicatableContainer<T, S> & ResettableContainer<T> & PositionableContainer<T> & PeekableContainer<T>> implements LimitedReadableContainer<T>, SkippableContainer<T>, MarkableContainer<T>, PeekableContainer<T> {
+public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T> & DuplicatableContainer<T, S> & ResettableContainer<T> & PositionableContainer<T> & PeekableContainer<T>> implements LimitedReadableContainer<T>, SkippableContainer<T>, MarkableContainer<T>, PeekableContainer<T>, DuplicatableContainer<T, FragmentedReadableContainer<T, S>> {
 
 	/**
 	 * The size of each buffer in the list, they have to be the same size
@@ -52,29 +52,30 @@ public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T
 	/**
 	 * This constructor can be used to start a read-only view of a list of backing arrays managed by another instance 
 	 */
-	private FragmentedReadableContainer(BufferFactory<T> bufferFactory, FragmentedReadableContainer<T, S> parent) {
+	private FragmentedReadableContainer(BufferFactory<T> bufferFactory, FragmentedReadableContainer<T, S> parent, boolean reset) {
 		this.factory = bufferFactory;
 		this.parent = parent;
-		this.readIndex = parent.markIndex;
+		this.readIndex = reset ? parent.markIndex : parent.readIndex;
 		this.bufferSize = parent.bufferSize;
 		this.backingArrays = new ArrayList<S>();
+		// the arrays are all reset to the beginning, however the first one might have been read from already so we need to skip whatever was already read
+		try {
+			getBackingArray(readIndex).skip(reset ? markOffset : parent.getBackingArray(readIndex).position());
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	private S getBackingArray(int i) {
 		// fill the current backing arrays with proxies where necessary
 		if (i >= backingArrays.size() && parent != null) {
 			for (int j = Math.max(backingArrays.size() - 1, 0); j < parent.backingArrays.size(); j++) {
-				if (j >= backingArrays.size())
-					backingArrays.add(parent.getBackingArray(j).duplicate());
-				else
-					backingArrays.set(j, parent.getBackingArray(j).duplicate());
 				// reset the duplicate so it reads everything
-				try {
-					backingArrays.get(j).reset();
-				}
-				catch (IOException e) {
-					throw new RuntimeException(e);
-				}
+				if (j >= backingArrays.size())
+					backingArrays.add(parent.getBackingArray(j).duplicate(true));
+				else
+					backingArrays.set(j, parent.getBackingArray(j).duplicate(true));
 			}
 		}
 		return backingArrays.isEmpty() || i >= backingArrays.size() ? null : backingArrays.get(i);
@@ -126,10 +127,10 @@ public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T
 	 * Creates a new readable which is based on the marked position of this container
 	 */
 	@Override
-	public FragmentedReadableContainer<T, S> clone() {
+	public FragmentedReadableContainer<T, S> duplicate(boolean reset) {
 		if (releaseRead)
 			throw new IllegalStateException("No mark has been set, can not clone");
-		return new FragmentedReadableContainer<T, S>(factory, this);
+		return new FragmentedReadableContainer<T, S>(factory, this, reset);
 	}
 
 	@Override

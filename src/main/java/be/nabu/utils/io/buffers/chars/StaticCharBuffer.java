@@ -129,8 +129,8 @@ public class StaticCharBuffer implements CharBuffer, ResettableContainer<CharBuf
 	}
 	
 	@Override
-	public StaticCharBuffer duplicate() {
-		return new StaticCharBuffer(this, true);
+	public StaticCharBuffer duplicate(boolean duplicateState) {
+		return new StaticCharBuffer(this, duplicateState);
 	}
 	
 	@Override
@@ -155,7 +155,7 @@ public class StaticCharBuffer implements CharBuffer, ResettableContainer<CharBuf
 
 	@Override
 	public long peek(CharBuffer buffer) throws IOException {
-		return buffer.write(duplicate());
+		return buffer.write(duplicate(true));
 	}
 	
 	@Override
