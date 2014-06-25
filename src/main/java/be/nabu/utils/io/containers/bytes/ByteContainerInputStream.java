@@ -5,7 +5,11 @@ import java.io.InputStream;
 
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.ByteBuffer;
+import be.nabu.utils.io.api.LimitedReadableContainer;
+import be.nabu.utils.io.api.MarkableContainer;
 import be.nabu.utils.io.api.ReadableContainer;
+import be.nabu.utils.io.api.ResettableContainer;
+import be.nabu.utils.io.api.SkippableContainer;
 
 public class ByteContainerInputStream extends InputStream {
 	
@@ -47,6 +51,43 @@ public class ByteContainerInputStream extends InputStream {
 		while (read == 0)
 			read = (int) container.read(IOUtils.wrap(bytes, offset, length, false));
 		return read;
+	}
+
+	@Override
+	public long skip(long amount) throws IOException {
+		if (container instanceof SkippableContainer)
+			return ((SkippableContainer<ByteBuffer>) container).skip(amount);
+		else
+			return super.skip(amount);
+	}
+
+	@Override
+	public int available() throws IOException {
+		if (container instanceof LimitedReadableContainer)
+			return (int) ((LimitedReadableContainer<ByteBuffer>) container).remainingData();
+		else
+			return super.available();
+	}
+
+	@Override
+	public synchronized void mark(int readlimit) {
+		if (container instanceof MarkableContainer)
+			((MarkableContainer<ByteBuffer>) container).mark();
+		else
+			super.mark(readlimit);
+	}
+
+	@Override
+	public boolean markSupported() {
+		return container instanceof MarkableContainer;
+	}
+
+	@Override
+	public synchronized void reset() throws IOException {
+		if (container instanceof ResettableContainer)
+			((ResettableContainer<ByteBuffer>) container).reset();
+		else
+			super.reset();
 	}
 
 }
