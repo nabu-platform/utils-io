@@ -113,4 +113,8 @@ public class ReadOnlyFileWrapper implements ReadableContainer<ByteBuffer>, Limit
 		return wrapper;
 	}
 
+	@Override
+	protected void finalize() throws Throwable {
+		close();
+	}
 }

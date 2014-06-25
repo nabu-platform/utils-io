@@ -33,11 +33,6 @@ public class FileWrapper extends ReadOnlyFileWrapper implements Container<ByteBu
 	}
 
 	@Override
-	protected void finalize() throws Throwable {
-		close();
-	}
-
-	@Override
 	public void flush() {
 		// do nothing
 	}
