@@ -60,7 +60,9 @@ public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T
 		this.backingArrays = new ArrayList<S>();
 		// the arrays are all reset to the beginning, however the first one might have been read from already so we need to skip whatever was already read
 		try {
-			getBackingArray(readIndex).skip(reset ? markOffset : parent.getBackingArray(readIndex).position());
+			S backingArray = getBackingArray(readIndex);
+			if (backingArray != null)
+				backingArray.skip(reset ? markOffset : parent.getBackingArray(readIndex).position());
 		}
 		catch (IOException e) {
 			throw new RuntimeException(e);
