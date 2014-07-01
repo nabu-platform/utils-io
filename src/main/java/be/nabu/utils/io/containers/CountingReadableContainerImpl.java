@@ -12,7 +12,12 @@ public class CountingReadableContainerImpl<T extends Buffer<T>> implements Count
 	private long readTotal = 0;
 	
 	public CountingReadableContainerImpl(ReadableContainer<T> parent) {
+		this(parent, 0);
+	}
+	
+	public CountingReadableContainerImpl(ReadableContainer<T> parent, long alreadyRead) {
 		this.parent = parent;
+		this.readTotal = alreadyRead;
 	}
 	
 	@Override

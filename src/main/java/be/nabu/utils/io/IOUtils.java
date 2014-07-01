@@ -386,8 +386,11 @@ public class IOUtils {
 		return new ValidatedReadableCharContainer(container, characters, whitelist);
 	}
 
+	public static <T extends Buffer<T>> CountingReadableContainer<T> countReadable(ReadableContainer<T> container, long alreadyRead) {
+		return new CountingReadableContainerImpl<T>(container, alreadyRead);
+	}
 	public static <T extends Buffer<T>> CountingReadableContainer<T> countReadable(ReadableContainer<T> container) {
-		return new CountingReadableContainerImpl<T>(container);
+		return countReadable(container, 0);
 	}
 	public static <T extends Buffer<T>> CountingWritableContainer<T> countWritable(WritableContainer<T> container) {
 		return new CountingWritableContainerImpl<T>(container);
