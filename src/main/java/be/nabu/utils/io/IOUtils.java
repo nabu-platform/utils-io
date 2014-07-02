@@ -59,6 +59,7 @@ import be.nabu.utils.io.containers.MinimalReadableContainer;
 import be.nabu.utils.io.containers.MinimalWritableContainer;
 import be.nabu.utils.io.containers.PushbackContainerImpl;
 import be.nabu.utils.io.containers.ReadableContainerChainer;
+import be.nabu.utils.io.containers.ReadableContainerDuplicator;
 import be.nabu.utils.io.containers.SynchronizedReadableContainer;
 import be.nabu.utils.io.containers.SynchronizedWritableContainer;
 import be.nabu.utils.io.containers.WritableContainerMulticaster;
@@ -106,6 +107,10 @@ public class IOUtils {
 		return new String(toChars(container));
 	}
 
+	public static <T extends Buffer<T>> ReadableContainer<T> copyOnRead(ReadableContainer<T> readable, WritableContainer<T>...outputs) {
+		return new ReadableContainerDuplicator<T>(readable, outputs);
+	}
+	
 	public static <T extends Buffer<T>> ReadableContainer<T> blockUntilRead(ReadableContainer<T> input, long timeout, TimeUnit timeUnit) {
 		return new BlockingReadableContainer<T>(input, timeout, timeUnit);
 	}
