@@ -17,8 +17,8 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 	private CyclicCharBuffer read;
 	private boolean stopped = false;
 	private boolean isRegex = false;
-	private boolean matched = false;
 	private int bufferSize;
+	private String matchedDelimiter = null;
 	
 	public DelimitedCharContainerImpl(ReadableContainer<CharBuffer> parent, String delimiter) {
 		this.parent = parent;
@@ -49,7 +49,7 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 	@Override
 	public long read(CharBuffer target) throws IOException {
 		// if matched or stopped, return anything still in the buffer, otherwise -1
-		if (matched || stopped)
+		if (matchedDelimiter != null || stopped)
 			return buffer.remainingData() > 0 ? buffer.read(target) : -1;
 			
 		int amountRead = 0;
@@ -60,7 +60,6 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 			String stringContent = IOUtils.toString(read);
 			// check for a regex match
 			if (isRegex && stringContent.matches(delimiter)) {
-				matched = true;
 				// the regex may match only a part of the buffer
 				// remove one character at a time from the resulting string and see when it no longer matches
 				int index = 0;
@@ -69,13 +68,13 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 					buffer.write(new char[] { stringContent.charAt(index) });
 					index++;
 				}
+				matchedDelimiter = stringContent.substring(index);
 				break;
 			}
 			// or a non-regex match where the size must always be respected
 			else if (amount == bufferSize && !isRegex && delimiter.equals(stringContent)) {
-				matched = true;
 				// remove all data from the buffer, it is the delimiter
-				buffer.truncate();
+				matchedDelimiter = IOUtils.toString(buffer);
 				break;
 			}
 			else if (amount == bufferSize) {
@@ -101,7 +100,12 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 
 	@Override
 	public boolean isDelimiterFound() {
-		return matched;
+		return matchedDelimiter != null;
+	}
+
+	@Override
+	public String getMatchedDelimiter() {
+		return matchedDelimiter;
 	}
 
 }

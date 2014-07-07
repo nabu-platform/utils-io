@@ -78,6 +78,7 @@ import be.nabu.utils.io.containers.chars.BackedWritableCharContainer;
 import be.nabu.utils.io.containers.chars.CharContainerReader;
 import be.nabu.utils.io.containers.chars.CharContainerWriter;
 import be.nabu.utils.io.containers.chars.DelimitedCharContainerImpl;
+import be.nabu.utils.io.containers.chars.IgnoreReadableCharContainer;
 import be.nabu.utils.io.containers.chars.ReaderWrapper;
 import be.nabu.utils.io.containers.chars.ValidatedReadableCharContainer;
 import be.nabu.utils.io.containers.chars.WriterWrapper;
@@ -109,6 +110,10 @@ public class IOUtils {
 
 	public static <T extends Buffer<T>> ReadableContainer<T> copyOnRead(ReadableContainer<T> readable, WritableContainer<T>...outputs) {
 		return new ReadableContainerDuplicator<T>(readable, outputs);
+	}
+	
+	public static ReadableContainer<CharBuffer> ignore(ReadableContainer<CharBuffer> parent,Character...charactersToIgnore) {
+		return new IgnoreReadableCharContainer(parent, charactersToIgnore);
 	}
 	
 	public static <T extends Buffer<T>> ReadableContainer<T> blockUntilRead(ReadableContainer<T> input, long timeout, TimeUnit timeUnit) {
