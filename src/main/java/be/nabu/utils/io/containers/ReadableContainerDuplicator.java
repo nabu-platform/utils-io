@@ -42,7 +42,9 @@ public class ReadableContainerDuplicator<T extends Buffer<T>> implements Readabl
 	@Override
 	public long read(T targetBuffer) throws IOException {
 		long totalRead = parent.read(targetBuffer);
-		
+		if (totalRead == -1) {
+			return totalRead;
+		}
 		if (buffer != null)
 			buffer.truncate();
 
