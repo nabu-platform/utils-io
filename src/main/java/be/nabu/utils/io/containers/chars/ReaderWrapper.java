@@ -31,6 +31,7 @@ public class ReaderWrapper implements ReadableContainer<CharBuffer> {
 				break;
 			}
 			target.write(buffer, 0, read);
+			totalRead += read;
 		}
 		return totalRead;
 	}
