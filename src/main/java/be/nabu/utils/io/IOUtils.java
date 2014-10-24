@@ -34,6 +34,7 @@ import be.nabu.utils.io.api.MarkableContainer;
 import be.nabu.utils.io.api.PeekableContainer;
 import be.nabu.utils.io.api.PushbackContainer;
 import be.nabu.utils.io.api.ReadableContainer;
+import be.nabu.utils.io.api.SkippableContainer;
 import be.nabu.utils.io.api.WritableContainer;
 import be.nabu.utils.io.buffers.bytes.ByteBufferSink;
 import be.nabu.utils.io.buffers.bytes.CyclicByteBuffer;
@@ -103,6 +104,24 @@ public class IOUtils {
 		if ((copied = copyBytes(container, buffer)) != bytes.length)
 			throw new IOException("Could only copy " + copied + "/" + bytes.length + " of the data");
 		return bytes;
+	}
+	
+	public static long skipBytes(ReadableContainer<ByteBuffer> container, long amount) throws IOException {
+		if (container instanceof SkippableContainer) {
+			return ((SkippableContainer<ByteBuffer>) container).skip(amount);
+		}
+		else {
+			return container.read(IOUtils.newByteSink(amount));
+		}
+	}
+	
+	public static long skipChars(ReadableContainer<CharBuffer> container, long amount) throws IOException {
+		if (container instanceof SkippableContainer) {
+			return ((SkippableContainer<CharBuffer>) container).skip(amount);
+		}
+		else {
+			return container.read(IOUtils.newCharSink(amount));
+		}
 	}
 	
 	public static String toString(ReadableContainer<CharBuffer> container) throws IOException {
