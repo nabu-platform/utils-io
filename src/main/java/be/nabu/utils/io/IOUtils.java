@@ -12,6 +12,7 @@ import java.net.SocketOption;
 import java.nio.channels.ByteChannel;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -137,8 +138,14 @@ public class IOUtils {
 		char [] chars = new char[size];
 		StaticCharBuffer buffer = new StaticCharBuffer(chars, false);
 		// this should only happen if you are multithreading
-		if (copyChars(container, buffer) != chars.length)
-			throw new IOException("Could not copy all the data");
+		// it can also happen when you overlimit your container, suppose you limit a container to "2" (limited readable)
+		// but there is actually 1 left in the parent container, you will only copy 1
+		// the limit is more of an upper limit
+		long copiedCharacters = copyChars(container, buffer);
+		if (copiedCharacters != chars.length) {
+//			throw new IOException("Could not copy all the data: " + copiedCharacters + " out of " + chars.length);
+			chars = Arrays.copyOfRange(chars, 0, (int) copiedCharacters);
+		}
 		return chars;
 	}
 	
