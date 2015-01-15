@@ -98,38 +98,28 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 
 	@Override
 	public long remainingData() {
-		int remainingData = 0;
-		int readPointer = this.readPointer;
-		boolean cycled = this.cycled;
-		int amountAvailable = 0;
-		while ((amountAvailable = getReadAmountAvailable(cycled, readPointer, writePointer)) > 0) {
-			remainingData += amountAvailable;
-			if (readPointer == -1)
-				readPointer++;
-			readPointer += amountAvailable;
-			if (readPointer >= buffer.length) {
-				readPointer = -1;
-				cycled = false;
-			}
+		if (readPointer == -1) {
+			return cycled ? buffer.length : writePointer;
 		}
-		return remainingData;
+		else if (cycled) {
+			return buffer.length - readPointer + writePointer;
+		}
+		else {
+			return writePointer - readPointer;
+		}
 	}
 
 	@Override
 	public long remainingSpace() {
-		int remainingSpace = 0;
-		int writePointer = this.writePointer;
-		boolean cycled = this.cycled;
-		int amountAvailable = 0;
-		while ((amountAvailable = getWriteAmountAvailable(cycled, readPointer, writePointer)) > 0) {
-			remainingSpace += amountAvailable;
-			writePointer += amountAvailable;
-			if (writePointer >= buffer.length) {
-				writePointer = 0;
-				cycled = true;
-			}
+		if (writePointer == 0 && cycled && readPointer == -1) {
+			return 0;
 		}
-		return remainingSpace;
+		else if (cycled) {
+			return readPointer - writePointer;
+		}
+		else {
+			return buffer.length - writePointer + (readPointer > 0 ? readPointer : 0);
+		}
 	}
 
 	@Override
@@ -145,12 +135,30 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 	}
 
 	@Override
-	public long read(CharBuffer buffer) throws IOException {
-		int amount = 0;
-		char [] chars = new char[4096];
+	public long read(CharBuffer target) throws IOException {
 		long amountWritten = 0;
-		while ((amount = read(chars, 0, (int) Math.min(chars.length, buffer.remainingSpace()))) > 0)
-			amountWritten += buffer.write(chars, 0, amount);
+		int amountToRead = (int) Math.min(getReadAmountAvailable(cycled, readPointer, writePointer), target.remainingSpace());
+		// read to end
+		if (amountToRead > 0) {
+			amountWritten += amountToRead;
+			target.write(buffer, readPointer == -1 ? 0 : readPointer, amountToRead);
+			if (readPointer == -1) {
+				readPointer = amountToRead;
+			}
+			else {
+				readPointer += amountToRead;
+			}
+			if (readPointer >= buffer.length) {
+				cycled = false;
+				readPointer = -1;
+				amountToRead = (int) Math.min(getReadAmountAvailable(cycled, readPointer, writePointer), target.remainingSpace());
+				if (amountToRead > 0) {
+					amountWritten += amountToRead;
+					target.write(buffer, 0, amountToRead);
+					readPointer = amountToRead;
+				}
+			}
+		}
 		return amountWritten;
 	}
 
