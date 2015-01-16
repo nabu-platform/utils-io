@@ -66,8 +66,10 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 				// remove one character at a time from the resulting string and see when it no longer matches
 				int index = 0;
 				buffer.truncate();
+				char [] single = new char[1];
 				while(index < stringContent.length() && stringContent.substring(index + 1).matches(delimiter)) {
-					buffer.write(new char[] { stringContent.charAt(index) });
+					single[0] = stringContent.charAt(index);
+					buffer.write(single);
 					index++;
 				}
 				matchedDelimiter = stringContent.substring(index);
