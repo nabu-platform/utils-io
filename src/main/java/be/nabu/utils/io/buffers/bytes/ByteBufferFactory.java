@@ -32,4 +32,8 @@ public class ByteBufferFactory implements BufferFactory<ByteBuffer> {
 		return new ByteBufferSink(size);
 	}
 
+	@Override
+	public ByteBuffer limit(ByteBuffer buffer, Long maxRead, Long maxWrite) {
+		return new LimitedByteBuffer(buffer, maxRead, maxWrite);
+	}
 }

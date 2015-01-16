@@ -11,7 +11,6 @@ public class LimitedWritableContainerImpl<T extends Buffer<T>> implements Limite
 	private WritableContainer<T> parent;
 	private long limit;
 	private long writtenTotal;
-	private T limitedBuffer;
 		
 	public LimitedWritableContainerImpl(WritableContainer<T> parent, long limit) {
 		this.parent = parent;
@@ -20,19 +19,9 @@ public class LimitedWritableContainerImpl<T extends Buffer<T>> implements Limite
 
 	@Override
 	public long write(T target) throws IOException {
-		long written = 0;
-		// make sure we have no buffered data
-		if (limitedBuffer == null || limitedBuffer.remainingData() == parent.write(limitedBuffer)) {
-			if (limitedBuffer != null)
-				limitedBuffer.truncate();
-			
-			if (limitedBuffer == null || limitedBuffer.remainingSpace() < target.remainingData() || remainingSpace() < target.remainingData())
-				limitedBuffer = target.getFactory().newInstance(Math.min(remainingSpace(), target.remainingData()), false);
-			written = target.read(limitedBuffer);
-			if (written > 0) {
-				parent.write(limitedBuffer);
-				writtenTotal += written;
-			}
+		long written = parent.write(target.getFactory().limit(target, remainingSpace(), null));
+		if (written > 0) {
+			writtenTotal += written;
 		}
 		return written;
 	}

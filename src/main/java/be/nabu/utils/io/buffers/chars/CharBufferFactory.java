@@ -2,6 +2,7 @@ package be.nabu.utils.io.buffers.chars;
 
 import be.nabu.utils.io.api.BufferFactory;
 import be.nabu.utils.io.api.CharBuffer;
+import be.nabu.utils.io.buffers.LimitedCharBuffer;
 
 public class CharBufferFactory implements BufferFactory<CharBuffer> {
 
@@ -32,4 +33,8 @@ public class CharBufferFactory implements BufferFactory<CharBuffer> {
 		return new CharBufferSink(size);
 	}
 
+	@Override
+	public CharBuffer limit(CharBuffer buffer, Long maxRead, Long maxWrite) {
+		return new LimitedCharBuffer(buffer, maxRead, maxWrite);
+	}
 }
