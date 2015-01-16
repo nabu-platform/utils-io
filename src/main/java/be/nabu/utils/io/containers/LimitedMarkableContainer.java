@@ -68,15 +68,32 @@ public class LimitedMarkableContainer<T extends Buffer<T>> implements MarkableCo
 				}
 			}
 			else if (marked) {
-				T buffer = target.getFactory().newInstance(target.remainingSpace(), false);
-				read = parent.read(buffer);
-				// couldn't push everything to backing container, presumably because limit is reached, unset
-				if (buffer.peek(backingContainer) < buffer.remainingData())
-					unmark();
-				target.write(buffer);
+				// for optimization: if the target buffer has no data inside of it, we can read to it directly because we can peek the result
+				// if it does have data, we would need some structure to skip certain things which in the end is too much overhead, might as well create a new container then
+				// note that in the overwhelming amount of usecases (90% in generic tests), the target is empty when we get here
+				if (target.remainingData() == 0) {
+					read = parent.read(target);
+					// the amount we read is too big to be stored in the backing container
+					if (read > backingContainer.remainingSpace()) {
+						unmark();
+					}
+					else {
+						target.peek(backingContainer);
+					}
+				}
+				else {
+					T buffer = target.getFactory().newInstance(target.remainingSpace(), false);
+					read = parent.read(buffer);
+					// couldn't push everything to backing container, presumably because limit is reached, unset
+					if (buffer.peek(backingContainer) < buffer.remainingData()) {
+						unmark();
+					}
+					target.write(buffer);
+				}
 			}
-			else
+			else {
 				read = parent.read(target);
+			}
 			
 			// make sure this signals -1 if no data was read
 			if (read == -1) {
