@@ -13,7 +13,6 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 	private CyclicCharBuffer buffer;
 	private String delimiter;
 	private ReadableContainer<CharBuffer> parent;
-	private CyclicCharBuffer single = new CyclicCharBuffer(1);
 	private boolean stopped = false;
 	private boolean isRegex = false;
 	private int bufferSize;
@@ -82,8 +81,7 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 			}
 			else if (stringContent.length() == bufferSize) {
 				// get a single char from the buffer and put it in the target
-				buffer.read(single);
-				target.write(single);
+				buffer.read(target.getFactory().limit(target, null, 1l));
 				amountRead++;
 			}
 		}
