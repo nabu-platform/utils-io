@@ -14,7 +14,6 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 	private String delimiter;
 	private ReadableContainer<CharBuffer> parent;
 	private CyclicCharBuffer single = new CyclicCharBuffer(1);
-	private CyclicCharBuffer read;
 	private boolean stopped = false;
 	private boolean isRegex = false;
 	private int bufferSize;
@@ -24,7 +23,6 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 		this.parent = parent;
 		this.delimiter = delimiter;
 		this.buffer = new CyclicCharBuffer(delimiter.length());
-		this.read = new CyclicCharBuffer(delimiter.length());
 		this.bufferSize = delimiter.length();
 	}
 
@@ -37,7 +35,6 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 		this.delimiter = regex;
 		this.isRegex = true;
 		this.buffer = new CyclicCharBuffer(bufferSize);
-		this.read = new CyclicCharBuffer(bufferSize);
 		this.bufferSize = bufferSize;
 	}
 	
@@ -46,6 +43,14 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 		parent.close();
 	}
 
+	private char [] peek(CharBuffer buffer) throws IOException {
+		char [] content = new char[(int) buffer.remainingData()];
+		if (buffer.peek(IOUtils.wrap(content, false)) != content.length) {
+			throw new IOException("Could not peek all content");
+		}
+		return content;
+	}
+	
 	@Override
 	public long read(CharBuffer target) throws IOException {
 		// if matched or stopped, return anything still in the buffer, otherwise -1
@@ -54,10 +59,8 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 			
 		int amountRead = 0;
 		long readFromParent = 0; 
-		while (target.remainingSpace() > 0 && (readFromParent = parent.read(single)) == 1) {
-			buffer.write(single);
-			int amount = (int) buffer.peek(read);
-			String stringContent = IOUtils.toString(read);
+		while (target.remainingSpace() > 0 && (readFromParent = parent.read(target.getFactory().limit(buffer, null, 1l))) == 1) {
+			String stringContent = new String(peek(buffer));
 			// check for a regex match
 			if (isRegex && stringContent.matches(delimiter)) {
 				// the regex may match only a part of the buffer
@@ -72,12 +75,12 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 				break;
 			}
 			// or a non-regex match where the size must always be respected
-			else if (amount == bufferSize && !isRegex && delimiter.equals(stringContent)) {
+			else if (stringContent.length() == bufferSize && !isRegex && delimiter.equals(stringContent)) {
 				// remove all data from the buffer, it is the delimiter
 				matchedDelimiter = IOUtils.toString(buffer);
 				break;
 			}
-			else if (amount == bufferSize) {
+			else if (stringContent.length() == bufferSize) {
 				// get a single char from the buffer and put it in the target
 				buffer.read(single);
 				target.write(single);
