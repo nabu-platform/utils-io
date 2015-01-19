@@ -7,6 +7,7 @@ import be.nabu.utils.io.api.CharBuffer;
 import be.nabu.utils.io.api.DelimitedCharContainer;
 import be.nabu.utils.io.api.MarkableContainer;
 import be.nabu.utils.io.api.ReadableContainer;
+import be.nabu.utils.io.containers.chars.BackedDelimitedCharContainer;
 
 public class TestDelimitedCharContainer extends TestCase {
 	
@@ -93,4 +94,31 @@ public class TestDelimitedCharContainer extends TestCase {
 
 	}
 
+	public void testBackedDelimited() throws IOException {
+		String string = "some,fields,*here";
+		MarkableContainer<CharBuffer> original = IOUtils.mark(IOUtils.wrap(string));
+		original.mark();
+		
+		// try one delimiter with too big a buffer size
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(original, 6, ",");
+		assertEquals(string.substring(0, 4), IOUtils.toString(delimited));
+		assertEquals(",", delimited.getMatchedDelimiter());
+		assertEquals("f", delimited.getRemainder());
+		original.reset();
+		IOUtils.skipChars(original, 6 - delimited.getRemainder().length());
+		
+		delimited = new BackedDelimitedCharContainer(original, 10, ",*");
+		assertEquals("fields", IOUtils.toString(delimited));
+		assertEquals(",*", delimited.getMatchedDelimiter());
+		assertEquals("he", delimited.getRemainder());
+	}
+	
+	public void testBackedDelimitedWithLongSeparator() throws IOException {
+		String string = "some,fields,*here";
+		MarkableContainer<CharBuffer> original = IOUtils.mark(IOUtils.wrap(string));
+		original.mark();
+		// get a delimited but with a buffer size that is smack in the middle of the delimiter
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(original, 12, ",*");
+		assertEquals("some,fields", IOUtils.toString(delimited));
+	}
 }

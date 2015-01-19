@@ -7,4 +7,8 @@ public interface MarkableContainer<T extends Buffer<T>> extends ResettableContai
 	 */
 	public void mark();
 	public void unmark();
+	/**
+	 * At worst this is an unmark() + mark(), at best it can be a more performant option
+	 */
+	public void remark();
 }

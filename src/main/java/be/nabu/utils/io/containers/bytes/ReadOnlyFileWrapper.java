@@ -20,6 +20,7 @@ public class ReadOnlyFileWrapper implements ReadableContainer<ByteBuffer>, Limit
 	protected boolean closed = false;
 	protected byte [] buffer = new byte[4096];
 	private String mode;
+	private boolean closeOnFullyRead = false;
 	
 	public ReadOnlyFileWrapper(File file) {
 		this(file, "r");
@@ -76,8 +77,12 @@ public class ReadOnlyFileWrapper implements ReadableContainer<ByteBuffer>, Limit
 	
 	@Override
 	public long read(ByteBuffer target) throws IOException {
-		if (!file.exists() || readPointer >= getRandomAccessFile().length())
+		if (!file.exists() || readPointer >= getRandomAccessFile().length()) {
+			if (closeOnFullyRead) {
+				close();
+			}
 			return closed ? -1 : 0;
+		}
 		else {
 			getRandomAccessFile().seek(readPointer);
 			long totalRead = 0;
@@ -116,5 +121,19 @@ public class ReadOnlyFileWrapper implements ReadableContainer<ByteBuffer>, Limit
 	@Override
 	protected void finalize() throws Throwable {
 		close();
+	}
+
+	@Override
+	public void remark() {
+		unmark();
+		mark();
+	}
+
+	public boolean isCloseOnFullyRead() {
+		return closeOnFullyRead;
+	}
+
+	public void setCloseOnFullyRead(boolean closeOnFullyRead) {
+		this.closeOnFullyRead = closeOnFullyRead;
 	}
 }

@@ -202,4 +202,10 @@ public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T
 	public BufferFactory<T> getFactory() {
 		return factory;
 	}
+
+	@Override
+	public void remark() {
+		unmark();
+		mark();
+	}
 }
