@@ -88,7 +88,7 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 			buffer.write(getBytes(), readPointer, amountToRead);
 			readPointer += amountToRead;
 		}
-		return amountToRead;
+		return amountToRead == 0 && remainingSpace() == 0 && remainingData() == 0 ? -1 : amountToRead;
 	}
 
 	@Override
