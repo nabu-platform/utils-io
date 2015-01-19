@@ -6,7 +6,7 @@ import be.nabu.utils.io.api.Buffer;
 import be.nabu.utils.io.api.MarkableContainer;
 import be.nabu.utils.io.api.ReadableContainer;
 
-public class LimitedMarkableContainer<T extends Buffer<T>> implements MarkableContainer<T> {
+public class LimitedMarkableContainer<T extends Buffer<T>> extends BasePushbackContainer<T> implements MarkableContainer<T> {
 
 	/**
 	 * The backing container contains all the data gleaned from the parent
@@ -37,12 +37,39 @@ public class LimitedMarkableContainer<T extends Buffer<T>> implements MarkableCo
 			throw new IllegalStateException("No mark has been set or the readLimit has been exceeded, can not reset");
 		reset = true;
 		resetContainer = null;
+		// we have to truncate pushed back data, it will still be available in the main container
+		if (getBuffer() != null && getBuffer().remainingData() > 0) {
+			getBuffer().truncate();
+		}
+	}
+
+	@Override
+	public void pushback(T data) throws IOException {
+		// if you push back data, it has to be put onto the backing container
+		// if it's too much, unmark()
+		if (marked) {
+			T newBackingContainer = readLimit == 0 ? data.getFactory().newInstance() : data.getFactory().newInstance(readLimit, false);
+			if (data.peek(newBackingContainer) != data.remainingData()) {
+				unmark();
+			}
+			else if (backingContainer != null && backingContainer.remainingData() != newBackingContainer.write(backingContainer)) {
+				unmark();
+			}
+			else {
+				backingContainer = newBackingContainer;
+			}
+		}
+		super.pushback(data);
 	}
 
 	@Override
 	public long read(T target) throws IOException {
 		long totalRead = 0;
 
+		if (getBuffer() != null && getBuffer().remainingData() > 0) {
+			totalRead += getBuffer().read(target);
+		}
+		
 		while (target.remainingSpace() > 0) {
 			long read = 0;
 			// there is no backing container yet, create it
@@ -125,6 +152,39 @@ public class LimitedMarkableContainer<T extends Buffer<T>> implements MarkableCo
 	}
 
 	@Override
+	public void remark() {
+		if (marked) {
+			if (backingContainer != null) {
+				backingContainer.truncate();
+			}
+			// if there is something left in the pushback container, you remarked while reading pushback data
+			// TODO: is it possible that something you pushed back is in the reset container as well? because the reset() container is a copy of the backing container and pushback is sent to both pushback and backing
+			// although an actual reset() clears the pushback data... perhaps an odd combination of mark+reset+pushback could trigger this though...
+			if (getBuffer() != null && getBuffer().remainingData() > 0) {
+				try {
+					getBuffer().peek(backingContainer);
+				}
+				catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			// if there is something still in the reset container, you remarked in a resetted part
+			if (resetContainer != null && resetContainer.remainingData() > 0) {
+				try {
+					resetContainer.peek(backingContainer);
+				}
+				catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			else {
+				resetContainer = null;
+				reset = false;
+			}
+		}
+	}
+
+	@Override
 	public void unmark() {
 		if (marked) {
 			marked = false;
@@ -133,5 +193,4 @@ public class LimitedMarkableContainer<T extends Buffer<T>> implements MarkableCo
 			reset = false;
 		}
 	}
-
 }

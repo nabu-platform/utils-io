@@ -3,14 +3,11 @@ package be.nabu.utils.io.containers;
 import java.io.IOException;
 
 import be.nabu.utils.io.api.Buffer;
-import be.nabu.utils.io.api.PushbackContainer;
 import be.nabu.utils.io.api.ReadableContainer;
 
-public class PushbackContainerImpl<T extends Buffer<T>> implements PushbackContainer<T> {
+public class PushbackContainerImpl<T extends Buffer<T>> extends BasePushbackContainer<T> {
 
 	private ReadableContainer<T> container;
-	
-	private T buffer;
 	
 	public PushbackContainerImpl(ReadableContainer<T> container) {
 		this.container = container;
@@ -21,8 +18,8 @@ public class PushbackContainerImpl<T extends Buffer<T>> implements PushbackConta
 		long totalRead = 0;
 		while (target.remainingSpace() > 0) {
 			long read = 0;
-			if (buffer != null && buffer.remainingData() > 0)
-				read = buffer.read(target);
+			if (getBuffer() != null && getBuffer().remainingData() > 0)
+				read = getBuffer().read(target);
 			else
 				read = container.read(target);
 			if (read == -1) {
@@ -43,14 +40,4 @@ public class PushbackContainerImpl<T extends Buffer<T>> implements PushbackConta
 		container.close();
 	}
 
-	@Override
-	public void pushback(T data) throws IOException {
-		if (buffer == null)
-			buffer = data.getFactory().newInstance();
-		buffer.write(data);
-	}
-
-	public long getBufferSize() {
-		return buffer == null ? 0 : buffer.remainingData();
-	}
 }

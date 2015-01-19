@@ -37,5 +37,12 @@ public class CountingReadableContainerImpl<T extends Buffer<T>> implements Count
 	public long getReadTotal() {
 		return readTotal;
 	}
+	
+	public void add(long value) {
+		readTotal += value;
+	}
 
+	public void setReadTotal(long value) {
+		this.readTotal = value;
+	}
 }
