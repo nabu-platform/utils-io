@@ -205,7 +205,6 @@ public class LimitedMarkableContainer<T extends Buffer<T>> extends BasePushbackC
 
 	@Override
 	public void unmark() {
-		if (true) throw new RuntimeException("wtf");
 		if (marked) {
 			marked = false;
 			backingContainer = null;
