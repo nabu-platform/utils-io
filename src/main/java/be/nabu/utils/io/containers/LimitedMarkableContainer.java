@@ -124,7 +124,7 @@ public class LimitedMarkableContainer<T extends Buffer<T>> extends BasePushbackC
 						alreadyRead += read;
 					}
 					// couldn't push everything to backing container, presumably because limit is reached, unset
-					if (buffer.peek(backingContainer) < buffer.remainingData()) {
+					if (buffer.remainingData() > 0 && buffer.peek(backingContainer) < buffer.remainingData()) {
 						unmark();
 					}
 					target.write(buffer);

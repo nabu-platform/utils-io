@@ -88,7 +88,7 @@ public class StaticCharBuffer implements CharBuffer, ResettableContainer<CharBuf
 			buffer.write(getChars(), readPointer, amountToRead);
 			readPointer += amountToRead;
 		}
-		return amountToRead;
+		return amountToRead == 0 && remainingSpace() == 0 && remainingData() == 0 ? -1 : amountToRead;
 	}
 
 	@Override

@@ -48,7 +48,7 @@ public class ReadableCharToByteContainer implements ReadableContainer<ByteBuffer
 			else
 				totalRead += read;
 		}
-		return totalRead;
+		return totalRead == 0 && parentClosed ? -1 : totalRead;
 	}
 
 }
