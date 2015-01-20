@@ -53,12 +53,15 @@ public class LimitedMarkableContainer<T extends Buffer<T>> extends BasePushbackC
 	}
 	
 	public long moveMarkAbsolute(long readIndex) throws IOException {
+		if (readIndex < markPosition) {
+			throw new IOException("Can not not move the mark backwards from " + markPosition + " to " + readIndex);
+		}
 		return moveMarkRelative(readIndex - markPosition);
 	}
 	
 	public long moveMarkRelative(long offset) throws IOException {
 		if (offset < 0) {
-			throw new IOException("Can not move the mark backwards");
+			throw new IOException("Can not move the mark backwards by " + offset);
 		}
 		// move the mark ahead by a certain amount
 		long markMoved = marked && backingContainer != null

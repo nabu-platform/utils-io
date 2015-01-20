@@ -106,8 +106,7 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 				while (index < stringContent.length() && stringContent.substring(index).matches(delimiter)) {
 					index++;
 				}
-				System.out.println(stringContent.length() + ": " + delimiterStart + " - " + (index + 1));
-				matchedDelimiter = stringContent.substring(delimiterStart, index + 1);
+				matchedDelimiter = stringContent.substring(delimiterStart, index);
 				remainder = getBuffer() == null ? "" : IOUtils.toString(getBuffer());
 				if (index + 1 < stringContent.length()) {
 					remainder += stringContent.substring(index + 1);
