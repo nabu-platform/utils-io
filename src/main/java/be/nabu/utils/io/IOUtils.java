@@ -12,7 +12,6 @@ import java.net.SocketOption;
 import java.nio.channels.ByteChannel;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -124,10 +123,16 @@ public class IOUtils {
 		}
 	}
 	
-	public static String toString(ReadableContainer<CharBuffer> container) throws IOException {
-		return new String(toChars(container));
+	public static String toString(ReadableContainer<CharBuffer> readable) throws IOException {
+		StringBuilder builder = new StringBuilder();
+		long read = 0;
+		char [] stringificationBuffer = new char[4096];
+		while ((read = readable.read(IOUtils.wrap(stringificationBuffer, false))) > 0) {
+			builder.append(new String(stringificationBuffer, 0, (int) read));
+		}
+		return builder.toString();
 	}
-
+	
 	public static <T extends Buffer<T>> ReadableContainer<T> copyOnRead(ReadableContainer<T> readable, WritableContainer<T>...outputs) {
 		return new ReadableContainerDuplicator<T>(readable, outputs);
 	}
@@ -145,27 +150,7 @@ public class IOUtils {
 	}
 	
 	public static char [] toChars(ReadableContainer<CharBuffer> container) throws IOException {
-		int size = 0;
-		// if we can't determine the size, we first have to copy it to a sized container
-		if (container instanceof LimitedReadableContainer)
-			size = (int) ((LimitedReadableContainer<CharBuffer>) container).remainingData();
-		else {
-			DynamicCharBuffer dynamicBuffer = new DynamicCharBuffer();
-			size = (int) copyChars(container, dynamicBuffer);
-			container = dynamicBuffer;
-		}
-		char [] chars = new char[size];
-		StaticCharBuffer buffer = new StaticCharBuffer(chars, false);
-		// this should only happen if you are multithreading
-		// it can also happen when you overlimit your container, suppose you limit a container to "2" (limited readable)
-		// but there is actually 1 left in the parent container, you will only copy 1
-		// the limit is more of an upper limit
-		long copiedCharacters = copyChars(container, buffer);
-		if (copiedCharacters != chars.length) {
-//			throw new IOException("Could not copy all the data: " + copiedCharacters + " out of " + chars.length);
-			chars = Arrays.copyOfRange(chars, 0, (int) copiedCharacters);
-		}
-		return chars;
+		return toString(container).toCharArray();
 	}
 	
 	/**
