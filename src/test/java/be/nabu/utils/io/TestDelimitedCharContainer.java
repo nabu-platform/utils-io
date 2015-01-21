@@ -7,6 +7,7 @@ import be.nabu.utils.io.api.CharBuffer;
 import be.nabu.utils.io.api.DelimitedCharContainer;
 import be.nabu.utils.io.api.MarkableContainer;
 import be.nabu.utils.io.api.ReadableContainer;
+import be.nabu.utils.io.containers.LimitedMarkableContainer;
 import be.nabu.utils.io.containers.chars.BackedDelimitedCharContainer;
 
 public class TestDelimitedCharContainer extends TestCase {
@@ -120,5 +121,42 @@ public class TestDelimitedCharContainer extends TestCase {
 		// get a delimited but with a buffer size that is smack in the middle of the delimiter
 		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(original, 12, ",*");
 		assertEquals("some,fields", IOUtils.toString(delimited));
+	}
+	
+	public void testBackedDelimitedWithRegex() throws IOException {
+		String string = "some::fields;;here:;";
+		LimitedMarkableContainer<CharBuffer> original = new LimitedMarkableContainer<CharBuffer>(IOUtils.wrap(string), 0);
+		original.mark();
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(original, 12, "[:;]{2}", 2);
+		assertEquals("some", IOUtils.toString(delimited));
+		assertEquals("::", delimited.getMatchedDelimiter());
+		
+		original.moveMarkRelative(6);
+		original.reset();
+		delimited = new BackedDelimitedCharContainer(original, 12, "[:;]{2}", 2);
+		assertEquals("fields", IOUtils.toString(delimited));
+		assertEquals(";;", delimited.getMatchedDelimiter());
+		
+		original.moveMarkRelative(8);
+		original.reset();
+		delimited = new BackedDelimitedCharContainer(original, 12, "[:;]{2}", 2);
+		assertEquals("here", IOUtils.toString(delimited));
+		assertEquals(":;", delimited.getMatchedDelimiter());
+	}
+	
+	
+	public void testBackedDelimitedWithRegexNoEnd() throws IOException {
+		String string = "some::fields";
+		LimitedMarkableContainer<CharBuffer> original = new LimitedMarkableContainer<CharBuffer>(IOUtils.wrap(string), 0);
+		original.mark();
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(original, 12, "[:;]{2}", 2);
+		assertEquals("some", IOUtils.toString(delimited));
+		assertEquals("::", delimited.getMatchedDelimiter());
+
+		original.moveMarkRelative(6);
+		original.reset();
+		delimited = new BackedDelimitedCharContainer(original, 12, "[:;]{2}", 2);
+		assertEquals("fields", IOUtils.toString(delimited));
+		assertNull(delimited.getMatchedDelimiter());
 	}
 }

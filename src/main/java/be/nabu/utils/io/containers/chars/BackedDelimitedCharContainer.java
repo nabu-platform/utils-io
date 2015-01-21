@@ -29,20 +29,25 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 	private String remainder;
 	
 	public BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String delimiter) {
-		this(parent, bufferSize, delimiter, delimiter.length());
+		this(parent, bufferSize, delimiter, delimiter.length(), false);
 	}
 
+	public BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String regex, int delimiterSize) {
+		// we need to add wildcards around the regex because we are matching a bigger container
+		this(parent, bufferSize, ".*" + regex + ".*", delimiterSize, true);
+	}
+	
 	/**
 	 * You can also set a regex as delimiter but then you need to specify a buffer size because a regex is rarely fixed-length
 	 * The regex could match smaller strings then the full buffer, you can turn this off by forcing matchSize to true
 	 */
-	public BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String regex, int delimiterSize) {
+	private BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String delimiter, int delimiterSize, boolean isRegex) {
 		if (bufferSize < delimiterSize + 1) {
 			throw new RuntimeException("The buffersize for the delimited container is too small");
 		}
 		this.parent = parent;
-		this.delimiter = regex;
-		this.isRegex = true;
+		this.delimiter = delimiter;
+		this.isRegex = isRegex;
 		this.buffer = new CyclicCharBuffer(bufferSize);
 		this.delimiterSize = delimiterSize;
 		this.stringifyBuffer = new char[bufferSize];
@@ -97,16 +102,15 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 				int index = 0;
 				buffer.truncate();
 				char [] single = new char[1];
-				while(index < stringContent.length() && stringContent.substring(index + 1).matches(delimiter)) {
+				while(index < stringContent.length() - 1 && stringContent.substring(index + 1).matches(delimiter)) {
 					single[0] = stringContent.charAt(index);
 					buffer.write(single);
 					index++;
 				}
 				int delimiterStart = index;
-				while (index < stringContent.length() && stringContent.substring(index).matches(delimiter)) {
+				while (index < stringContent.length() - 1 && stringContent.substring(index).matches(delimiter)) {
 					index++;
 				}
-				System.out.println(stringContent.length() + ": " + delimiterStart + " - " + (index + 1));
 				matchedDelimiter = stringContent.substring(delimiterStart, index + 1);
 				remainder = getBuffer() == null ? "" : IOUtils.toString(getBuffer());
 				if (index + 1 < stringContent.length()) {
@@ -119,7 +123,7 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 			}
 			else {
 				int index = stringContent.indexOf(delimiter);
-				if (index >= 0) {
+				if (!isRegex && index >= 0) {
 					buffer.truncate();
 					// write the remainder to the target, if it can't all fit, write it to the buffer
 					if (index > 0) {
