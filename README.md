@@ -28,6 +28,8 @@ Interestingly enough, the Buffers are actually also containers, just with a lot 
 
 The design is based primarily on java.io, java.nio and netty io.
 
+**Important**: the testcases might fail with maven 2 if you are not running your system in UTF-8 mode. Maven 2 appears to ignore the encoding in the pom.xml file and some testcases are sensitive to encoding. Tests do pass in maven 3.
+
 # Example
 
 The first question with any new library is: how easy is it to use?
