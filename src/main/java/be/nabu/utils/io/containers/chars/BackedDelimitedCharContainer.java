@@ -16,6 +16,11 @@ import be.nabu.utils.io.containers.BasePushbackContainer;
  * @author alex
  *
  */
+/**
+ * This is a delimited container that should be backed by a 
+ * @author alex
+ *
+ */
 public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuffer> implements ReadableContainer<CharBuffer>, DelimitedCharContainer, ResettableContainer<CharBuffer>, PushbackContainer<CharBuffer> {
 
 	private CyclicCharBuffer buffer;
