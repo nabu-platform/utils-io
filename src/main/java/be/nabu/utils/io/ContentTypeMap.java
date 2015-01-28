@@ -93,14 +93,22 @@ public class ContentTypeMap implements FileNameMap {
 	public Set<String> getAllContentTypesFor(String fileName) {
 		Set<String> contentTypes = new LinkedHashSet<String>();
 		
-		// search local from longest possible extension to shortest
-		int lastIndex = -1;
-		while ((lastIndex = fileName.indexOf('.', lastIndex + 1)) != -1) {
-			// the substring is +1 to skip the actual dot
-			String possibleExtension = fileName.substring(lastIndex + 1).toLowerCase();
-			if (extensions.containsKey(possibleExtension)) {
-				contentTypes.addAll(extensions.get(possibleExtension));
-				break;
+		// if it has no dot at all, try as a whole
+		if (fileName.indexOf('.') < 0) {
+			if (extensions.containsKey(fileName.toLowerCase())) {
+				contentTypes.addAll(extensions.get(fileName.toLowerCase()));
+			}
+		}
+		else {
+			// search local from longest possible extension to shortest
+			int lastIndex = -1;
+			while ((lastIndex = fileName.indexOf('.', lastIndex + 1)) != -1) {
+				// the substring is +1 to skip the actual dot
+				String possibleExtension = fileName.substring(lastIndex + 1).toLowerCase();
+				if (extensions.containsKey(possibleExtension)) {
+					contentTypes.addAll(extensions.get(possibleExtension));
+					break;
+				}
 			}
 		}
 
