@@ -16,9 +16,11 @@ public class ByteContainerInputStream extends InputStream {
 	private ReadableContainer<ByteBuffer> container;
 	private boolean closed = false;
 	private byte [] single = new byte[1];
+	private boolean closeIfEmpty;
 	
-	public ByteContainerInputStream(ReadableContainer<ByteBuffer> container) {
+	public ByteContainerInputStream(ReadableContainer<ByteBuffer> container, boolean closeIfEmpty) {
 		this.container = container;
+		this.closeIfEmpty = closeIfEmpty;
 	}
 	
 	@Override
@@ -48,8 +50,14 @@ public class ByteContainerInputStream extends InputStream {
 		
 		int read = 0;
 		// block until data is present
-		while (read == 0)
+		while (read == 0) {
 			read = (int) container.read(IOUtils.wrap(bytes, offset, length, false));
+			if (read == 0 && closeIfEmpty) {
+				close();
+				read = -1;
+				break;
+			}
+		}
 		return read;
 	}
 
