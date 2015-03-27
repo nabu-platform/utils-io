@@ -11,9 +11,11 @@ public class ByteContainerOutputStream extends OutputStream {
 
 	private WritableContainer<ByteBuffer> container;
 	private byte [] single = new byte [1];
+	private boolean failIfFull;
 	
-	public ByteContainerOutputStream(WritableContainer<ByteBuffer> container) {
+	public ByteContainerOutputStream(WritableContainer<ByteBuffer> container, boolean failIfFull) {
 		this.container = container;
+		this.failIfFull = failIfFull;
 	}
 	
 	@Override
@@ -29,8 +31,18 @@ public class ByteContainerOutputStream extends OutputStream {
 
 	@Override
 	public void write(byte[] b, int off, int len) throws IOException {
-		while (len > 0)
-			len -= container.write(IOUtils.wrap(b, off, len, true));
+		while (len > 0) {
+			long written = container.write(IOUtils.wrap(b, off, len, true));
+			if (written < 0) {
+				throw new IOException("The target container is closed");
+			}
+			// there is no way to send back partial success
+			// you "could" hang until it works but this might result in everlasting hangs
+			else if (written == 0 && failIfFull) {
+				throw new IOException("The target container is full");
+			}
+			len -= written;
+		}
 	}
 
 	@Override

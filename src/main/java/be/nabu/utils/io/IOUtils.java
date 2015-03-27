@@ -453,7 +453,11 @@ public class IOUtils {
 	}
 	
 	public static OutputStream toOutputStream(WritableContainer<ByteBuffer> writable) {
-		return new ByteContainerOutputStream(writable);
+		return toOutputStream(writable, false);
+	}
+	
+	public static OutputStream toOutputStream(WritableContainer<ByteBuffer> writable, boolean failIfFull) {
+		return new ByteContainerOutputStream(writable, failIfFull);
 	}
 	
 	public static Reader toReader(ReadableContainer<CharBuffer> readable) {
