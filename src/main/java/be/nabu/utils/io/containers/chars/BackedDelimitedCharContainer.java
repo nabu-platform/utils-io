@@ -51,6 +51,14 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 		this.stringifyBuffer = new char[bufferSize];
 	}
 	
+	public void reinitialize(ReadableContainer<CharBuffer> parent) {
+		this.buffer.truncate();
+		this.parent = parent;
+		this.remainder = null;
+		this.stopped = false;
+		this.matchedDelimiter = null;
+	}
+	
 	@Override
 	public void close() throws IOException {
 		parent.close();
