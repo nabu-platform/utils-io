@@ -41,7 +41,6 @@ import be.nabu.utils.io.buffers.bytes.DynamicByteBuffer;
 import be.nabu.utils.io.buffers.bytes.NioByteBufferWrapper;
 import be.nabu.utils.io.buffers.bytes.StaticByteBuffer;
 import be.nabu.utils.io.buffers.chars.CharBufferSink;
-import be.nabu.utils.io.buffers.chars.CharSequenceBuffer;
 import be.nabu.utils.io.buffers.chars.CyclicCharBuffer;
 import be.nabu.utils.io.buffers.chars.DynamicCharBuffer;
 import be.nabu.utils.io.buffers.chars.NioCharBufferWrapper;
