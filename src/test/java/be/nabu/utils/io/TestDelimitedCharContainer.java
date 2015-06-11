@@ -159,4 +159,24 @@ public class TestDelimitedCharContainer extends TestCase {
 		assertEquals("fields", IOUtils.toString(delimited));
 		assertNull(delimited.getMatchedDelimiter());
 	}
+	
+	public void testBackedDelimitedWithRegexLineFeed() throws IOException {
+		String string = "some\nfields";
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(IOUtils.wrap(string), 12, "(\r\n|\n)", 2);
+		assertEquals("some", IOUtils.toString(delimited));
+		assertEquals("\n", delimited.getMatchedDelimiter());
+		delimited = new BackedDelimitedCharContainer(IOUtils.wrap(delimited.getRemainder()), 12, "(\r\n|\n)", 2);
+		assertEquals("fields", IOUtils.toString(delimited));
+		assertNull(delimited.getMatchedDelimiter());
+	}
+	
+	public void testBackedDelimitedWithRegexLineFeedAndCarriageReturn() throws IOException {
+		String string = "some\r\nfields";
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(IOUtils.wrap(string), 12, "(\r\n|\n)", 2);
+		assertEquals("some", IOUtils.toString(delimited));
+		assertEquals("\r\n", delimited.getMatchedDelimiter());
+		delimited = new BackedDelimitedCharContainer(IOUtils.wrap(delimited.getRemainder()), 12, "(\r\n|\n)", 2);
+		assertEquals("fields", IOUtils.toString(delimited));
+		assertNull(delimited.getMatchedDelimiter());
+	}
 }

@@ -25,6 +25,7 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 	private String matchedDelimiter = null;
 	private char [] stringifyBuffer;
 	private String remainder;
+	private String exactRegex;
 	
 	public BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String delimiter) {
 		this(parent, bufferSize, delimiter, delimiter.length(), false);
@@ -32,7 +33,8 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 
 	public BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String regex, int delimiterSize) {
 		// we need to add wildcards around the regex because we are matching a bigger container
-		this(parent, bufferSize, ".*" + regex + ".*", delimiterSize, true);
+		this(parent, bufferSize, "(?s)^.*?" + regex + ".*$", delimiterSize, true);
+		this.exactRegex = regex;
 	}
 	
 	/**
@@ -108,13 +110,14 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 				int index = 0;
 				buffer.truncate();
 				char [] single = new char[1];
-				while(index < stringContent.length() - 1 && stringContent.substring(index + 1).matches(delimiter)) {
+				while(index < stringContent.length() - 1 && !stringContent.substring(index).matches("(?s)^" + exactRegex + ".*$")) {	// && !stringContent.substring(index + 1).matches(exactRegex))
 					single[0] = stringContent.charAt(index);
 					buffer.write(single);
 					index++;
 				}
 				int delimiterStart = index;
-				while (index < stringContent.length() - 1 && stringContent.substring(index).matches(delimiter)) {
+				// start from the end to find the delimiter match
+				while (index <= delimiterStart + delimiterSize && !stringContent.substring(delimiterStart, index + 1).matches(exactRegex)) {
 					index++;
 				}
 				matchedDelimiter = stringContent.substring(delimiterStart, index + 1);
@@ -144,7 +147,7 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 					matchedDelimiter = stringContent.substring(index, index + delimiterSize);
 					remainder = getBuffer() == null ? "" : IOUtils.toString(getBuffer());
 					if (index + delimiterSize < stringContent.length()) {
-						remainder = stringContent.substring(index + delimiterSize);
+						remainder += stringContent.substring(index + delimiterSize);
 					}
 					if (remainder.isEmpty()) {
 						remainder = null;
