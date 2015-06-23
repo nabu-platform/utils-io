@@ -117,12 +117,16 @@ public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T
 	public void reset() throws IOException {
 		if (releaseRead)
 			throw new IllegalStateException("No mark has been set, can not reset");
-		readIndex = markIndex;
 		for (int i = readIndex; i >= markIndex; i--) {
-			getBackingArray(readIndex).reset();
-			readIndex = i;
+			S backingArray = getBackingArray(i);
+			if (backingArray != null) {
+				backingArray.reset();
+			}
 		}
-		getBackingArray(readIndex).skip(markOffset);
+		readIndex = markIndex;
+		if (markOffset > 0) {
+			getBackingArray(readIndex).skip(markOffset);
+		}
 	}
 	
 	/**
