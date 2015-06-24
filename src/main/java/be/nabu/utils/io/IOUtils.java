@@ -399,6 +399,10 @@ public class IOUtils {
 		return new SSLSocketByteContainer(container, context, isClient);
 	}
 	
+	public static Container<ByteBuffer> secure(Container<ByteBuffer> container, SSLContext context, SSLServerMode serverMode) throws SSLException {
+		return new SSLSocketByteContainer(container, context, serverMode);
+	}
+	
 	public static Container<ByteBuffer> connect(String host, int port, SocketOption<?>...options) throws IOException {
 		return new SocketByteContainer(new InetSocketAddress(host, port));
 	}

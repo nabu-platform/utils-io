@@ -10,6 +10,7 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 
 import be.nabu.utils.io.IOUtils;
+import be.nabu.utils.io.SSLServerMode;
 import be.nabu.utils.io.api.Container;
 
 /**
@@ -25,6 +26,14 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	
 	private be.nabu.utils.io.api.ByteBuffer writeBuffer = IOUtils.newByteBuffer(),
 			readBuffer = IOUtils.newByteBuffer();
+	
+	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, SSLServerMode serverMode) throws SSLException {
+		this(parent, context, false);
+		switch(serverMode) {
+			case WANT_CLIENT_CERTIFICATES: engine.setWantClientAuth(true); break;
+			case NEED_CLIENT_CERTIFICATES: engine.setNeedClientAuth(true); break;
+		}
+	}
 	
 	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, boolean isClient) throws SSLException {
 		this.parent = parent;

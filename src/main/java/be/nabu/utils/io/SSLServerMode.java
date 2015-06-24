@@ -1,0 +1,7 @@
+package be.nabu.utils.io;
+
+public enum SSLServerMode {
+	NO_CLIENT_CERTIFICATES,
+	WANT_CLIENT_CERTIFICATES,
+	NEED_CLIENT_CERTIFICATES
+}
