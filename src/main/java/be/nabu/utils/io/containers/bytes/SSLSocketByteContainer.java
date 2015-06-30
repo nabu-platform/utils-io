@@ -12,6 +12,9 @@ import javax.net.ssl.SSLException;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.SSLServerMode;
 import be.nabu.utils.io.api.Container;
+import be.nabu.utils.io.api.ReadableContainer;
+import be.nabu.utils.io.api.WritableContainer;
+import be.nabu.utils.io.buffers.bytes.NioByteBufferWrapper;
 
 /**
  * http://docs.oracle.com/javase/7/docs/technotes/guides/security/jsse/JSSERefGuide.html#SSLENG
@@ -89,14 +92,23 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	
 	private int wrap(boolean block) throws IOException {
 		int totalWritten = 0;
-		SSLEngineResult result;
+		SSLEngineResult result = null;
+		long write = parent.write(writeBuffer);
+		boolean isDone = write == -1;
 		// first make sure we copy all data from the writeBuffer to the output
-		if (writeBuffer.remainingData() == IOUtils.copyBytes(writeBuffer, parent)) {
+		if (write >= 0 && writeBuffer.remainingData() == 0) {
 			do {
 				networkOut.clear();
 				result = engine.wrap(application, networkOut);
 				networkOut.flip();
-				totalWritten += IOUtils.copyBytes(IOUtils.wrap(networkOut, true), block ? IOUtils.blockUntilWritten(parent, networkOut.remaining()) : parent);
+				WritableContainer<be.nabu.utils.io.api.ByteBuffer> writable = block ? IOUtils.blockUntilWritten(parent, networkOut.remaining()) : parent;
+				write = writable.write(new NioByteBufferWrapper(networkOut, true));
+				if (write == -1) {
+					isDone = true;
+				}
+				else {
+					totalWritten += write;
+				}
 				// if we can't write it to the socket, write it to the buffer
 				if (networkOut.hasRemaining()) {
 					writeBuffer.write(networkOut.array(), networkOut.position(), networkOut.remaining());
@@ -105,17 +117,24 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			}
 			while (result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
 		}
-		return totalWritten;
+		isDone |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED; 
+		return totalWritten == 0 && isDone ? -1 : totalWritten;
 	}
 	
 	private int unwrap(boolean block) throws IOException {
 		int totalRead = 0;
-		SSLEngineResult result;
+		SSLEngineResult result = null;
+		boolean isDone = false;
 		do {
 			// there is still some room left, read more
-			if (networkIn.hasRemaining())
+			if (networkIn.hasRemaining()) {
 				// only block if there is no data at all in the network buffer
-				IOUtils.copyBytes(block && networkIn.remaining() == networkIn.capacity() ? IOUtils.blockUntilRead(parent) : parent, IOUtils.wrap(networkIn, false));
+				ReadableContainer<be.nabu.utils.io.api.ByteBuffer> readable = block && networkIn.remaining() == networkIn.capacity() ? IOUtils.blockUntilRead(parent) : parent;
+				long read = readable.read(new NioByteBufferWrapper(networkIn, false));
+				if (read == -1) {
+					isDone = true;
+				}
+			}
 			// if no data has been read, stop
 			if (networkIn.remaining() == networkIn.capacity())
 				break;
@@ -131,7 +150,8 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			totalRead += IOUtils.copyBytes(IOUtils.wrap(application, true), readBuffer);
 		}
 		while (result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
-		return totalRead;
+		isDone |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED;
+		return totalRead == 0 && isDone ? -1 : totalRead;
 	}
 	
 	@Override

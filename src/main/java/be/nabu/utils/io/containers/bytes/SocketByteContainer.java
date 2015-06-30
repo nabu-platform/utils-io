@@ -18,8 +18,17 @@ public class SocketByteContainer extends ByteChannelContainer<SocketChannel> {
 		getChannel().connect(remote);
 	}
 	
+	public SocketByteContainer(SocketChannel channel) {
+		super(channel);
+	}
+	
 	@Override
 	public boolean isReady() throws IOException {
 		return getChannel().finishConnect();
-	}	
+	}
+
+	@Override
+	boolean isClosed() {
+		return super.isClosed() || getChannel().socket().isClosed();
+	}
 }

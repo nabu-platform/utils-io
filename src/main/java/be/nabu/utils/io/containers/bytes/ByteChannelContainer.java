@@ -10,6 +10,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 	
 	private T channel;
 	private byte [] bytes = new byte[4096];
+	private boolean isClosed;
 
 	public ByteChannelContainer(T channel) {
 		this.channel = channel;
@@ -21,8 +22,12 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 
 	@Override
 	public long read(be.nabu.utils.io.api.ByteBuffer target) throws IOException {
-		if (!isReady())
+		if (isClosed()) {
+			return -1;
+		}
+		else if (!isReady()) {
 			return 0;
+		}
 		long totalRead = 0;
 		while (target.remainingSpace() > 0) {
 			int read = channel.read(ByteBuffer.wrap(bytes, 0, (int) Math.min(bytes.length, target.remainingSpace())));
@@ -43,13 +48,18 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 
 	@Override
 	public void close() throws IOException {
+		isClosed = true;
 		channel.close();
 	}
 
 	@Override
 	public long write(be.nabu.utils.io.api.ByteBuffer source) throws IOException {
-		if (!isReady())
+		if (isClosed()) {
+			return -1;
+		}
+		else if (!isReady()) {
 			return 0;
+		}
 		long totalWritten = 0;
 		while (source.remainingData() > 0) {
 			int read = source.read(bytes, 0, (int) Math.min(bytes.length, source.remainingData()));
@@ -67,5 +77,13 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 	
 	protected boolean isReady() throws IOException {
 		return channel.isOpen();
+	}
+
+	boolean isClosed() {
+		return isClosed;
+	}
+
+	void setClosed(boolean isClosed) {
+		this.isClosed = isClosed;
 	}
 }
