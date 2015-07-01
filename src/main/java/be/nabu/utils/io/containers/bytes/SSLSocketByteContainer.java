@@ -2,6 +2,7 @@ package be.nabu.utils.io.containers.bytes;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Date;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -18,6 +19,8 @@ import be.nabu.utils.io.buffers.bytes.NioByteBufferWrapper;
 
 /**
  * http://docs.oracle.com/javase/7/docs/technotes/guides/security/jsse/JSSERefGuide.html#SSLENG
+ * 
+ * Note that currently the handshake _is_ blocking but has a configurable timeout (defaults to 30 seconds)
  */
 public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.ByteBuffer> {
 
@@ -25,16 +28,20 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	private SSLEngine engine;
 	private SSLContext context;
 	private ByteBuffer application, networkIn, networkOut;
-	private boolean handshakeStarted = false;
+	private Date handshakeStarted;
+	private Long handshakeTimeout;
 	
 	private be.nabu.utils.io.api.ByteBuffer writeBuffer = IOUtils.newByteBuffer(),
 			readBuffer = IOUtils.newByteBuffer();
+	
+	private boolean isClosed;
 	
 	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, SSLServerMode serverMode) throws SSLException {
 		this(parent, context, false);
 		switch(serverMode) {
 			case WANT_CLIENT_CERTIFICATES: engine.setWantClientAuth(true); break;
 			case NEED_CLIENT_CERTIFICATES: engine.setNeedClientAuth(true); break;
+			case NO_CLIENT_CERTIFICATES: // do nothing
 		}
 	}
 	
@@ -64,18 +71,27 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	
 	public boolean shakeHands() throws IOException {
 		// start the handshake if we haven't yet
-		if (!handshakeStarted) {
+		if (handshakeStarted == null) {
 			engine.beginHandshake();
-			handshakeStarted = true;
+			handshakeStarted = new Date();
 		}
 		// the handshake status will revert to NOT_HANDSHAKING after it is finished
-		while (engine.getHandshakeStatus() != HandshakeStatus.FINISHED && engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING) {
+		handshake: while (engine.getHandshakeStatus() != HandshakeStatus.FINISHED && engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING) {
+			if (new Date().getTime() > handshakeStarted.getTime() + getHandshakeTimeout()) {
+				throw new SSLException("Handshaked timed out");
+			}
 			switch(engine.getHandshakeStatus()) {
 				case NEED_WRAP:
-					wrap(true);
+					if (wrap(true) == -1) {
+						isClosed = true;
+						break handshake;
+					}
 				break;
 				case NEED_UNWRAP:
-					unwrap(true);
+					if (unwrap(true) == -1) {
+						isClosed = true;
+						break handshake;
+					}
 				break;
 				case NEED_TASK:
 					// don't offload to different thread
@@ -87,14 +103,15 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				case NOT_HANDSHAKING:
 			}
 		}
-		return true;
+		return !isClosed;
 	}
 	
+	@SuppressWarnings("resource")
 	private int wrap(boolean block) throws IOException {
 		int totalWritten = 0;
 		SSLEngineResult result = null;
 		long write = parent.write(writeBuffer);
-		boolean isDone = write == -1;
+		isClosed |= write == -1;
 		// first make sure we copy all data from the writeBuffer to the output
 		if (write >= 0 && writeBuffer.remainingData() == 0) {
 			do {
@@ -104,7 +121,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				WritableContainer<be.nabu.utils.io.api.ByteBuffer> writable = block ? IOUtils.blockUntilWritten(parent, networkOut.remaining()) : parent;
 				write = writable.write(new NioByteBufferWrapper(networkOut, true));
 				if (write == -1) {
-					isDone = true;
+					isClosed = true;
 				}
 				else {
 					totalWritten += write;
@@ -117,14 +134,14 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			}
 			while (result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
 		}
-		isDone |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED; 
-		return totalWritten == 0 && isDone ? -1 : totalWritten;
+		isClosed |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED; 
+		return totalWritten == 0 && isClosed ? -1 : totalWritten;
 	}
 	
+	@SuppressWarnings("resource")
 	private int unwrap(boolean block) throws IOException {
 		int totalRead = 0;
 		SSLEngineResult result = null;
-		boolean isDone = false;
 		do {
 			// there is still some room left, read more
 			if (networkIn.hasRemaining()) {
@@ -132,7 +149,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				ReadableContainer<be.nabu.utils.io.api.ByteBuffer> readable = block && networkIn.remaining() == networkIn.capacity() ? IOUtils.blockUntilRead(parent) : parent;
 				long read = readable.read(new NioByteBufferWrapper(networkIn, false));
 				if (read == -1) {
-					isDone = true;
+					isClosed = true;
 				}
 			}
 			// if no data has been read, stop
@@ -150,8 +167,8 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			totalRead += IOUtils.copyBytes(IOUtils.wrap(application, true), readBuffer);
 		}
 		while (result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
-		isDone |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED;
-		return totalRead == 0 && isDone ? -1 : totalRead;
+		isClosed |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED;
+		return totalRead == 0 && isClosed ? -1 : totalRead;
 	}
 	
 	@Override
@@ -165,17 +182,23 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				if (readBuffer.remainingData() > 0)
 					return readTotal;
 			}
+			long read = 0;
 			while (target.remainingSpace() > 0 && readBuffer.remainingData() == 0) {
-				if (engine.isInboundDone())
-					return readTotal == 0 ? -1 : readTotal;
-				unwrap(false);
-				long read = IOUtils.copyBytes(readBuffer, target);
-				if (read == 0)
+				if (engine.isInboundDone()) {
+					isClosed = true;
+					break;
+				}
+				read = unwrap(false);
+				if (read == -1) {
+					isClosed = true;
+				}
+				read = target.write(readBuffer);
+				if (read <= 0)
 					break;
 				readTotal += read;
 			}
 		}
-		return readTotal;
+		return readTotal == 0 && isClosed ? -1 : readTotal;
 	}
 	
 	@Override
@@ -202,12 +225,15 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				IOUtils.copyBytes(IOUtils.limitReadable(source, amount), IOUtils.wrap(application, false));
 //				application.put(bytes, offset, amount);
 				application.flip();
-				wrap(true);
+				if (wrap(true) == -1) {
+					isClosed = true;
+					break;
+				}
 				application.compact();
 				writeTotal += amount;
 			}
 		}
-		return writeTotal;
+		return writeTotal == 0 && isClosed ? -1 : writeTotal;
 	}
 
 	@Override
@@ -215,4 +241,15 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		parent.flush();
 	}
 
+	public Long getHandshakeTimeout() {
+		if (handshakeTimeout == null) {
+			// 30 seconds to time out should be enough for a handshake?
+			handshakeTimeout = Long.parseLong(System.getProperty("ssl.handshake.timeout", "30000"));
+		}
+		return handshakeTimeout;
+	}
+
+	public void setHandshakeTimeout(Long handshakeTimeout) {
+		this.handshakeTimeout = handshakeTimeout;
+	}
 }
