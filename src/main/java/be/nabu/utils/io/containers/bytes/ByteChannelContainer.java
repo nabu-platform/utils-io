@@ -32,8 +32,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 		while (target.remainingSpace() > 0) {
 			int read = channel.read(ByteBuffer.wrap(bytes, 0, (int) Math.min(bytes.length, target.remainingSpace())));
 			if (read == -1) {
-				if (totalRead == 0)
-					totalRead = -1;
+				isClosed = true;
 				break;
 			}
 			else if (read == 0)
@@ -43,7 +42,8 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 			if (target.write(bytes, 0, read) != read)
 				throw new IOException("Can not write all data to the buffer");
 		}
-		return totalRead == 0 && !channel.isOpen() ? -1 : totalRead;
+		isClosed |= !channel.isOpen();
+		return totalRead == 0 && isClosed() ? -1 : totalRead;
 	}
 
 	@Override

@@ -132,7 +132,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 					break;
 				}
 			}
-			while (result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
+			while (!isClosed && result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
 		}
 		isClosed |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED; 
 		return totalWritten == 0 && isClosed ? -1 : totalWritten;
@@ -164,9 +164,13 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			application.flip();
 			networkIn.compact();
 			// write it all to the buffer
-			totalRead += IOUtils.copyBytes(IOUtils.wrap(application, true), readBuffer);
+			totalRead += IOUtils.wrap(application, true).read(readBuffer);
+			if (application.remaining() != 0) {
+				throw new IOException("Could not copy the application buffer to the target read buffer");
+			}
+			//IOUtils.copyBytes(IOUtils.wrap(application, true), readBuffer);
 		}
-		while (result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
+		while (!isClosed && result.getStatus() != SSLEngineResult.Status.OK && result.getStatus() != SSLEngineResult.Status.CLOSED);
 		isClosed |= result != null && result.getStatus() == SSLEngineResult.Status.CLOSED;
 		return totalRead == 0 && isClosed ? -1 : totalRead;
 	}
@@ -174,7 +178,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	@Override
 	public long read(be.nabu.utils.io.api.ByteBuffer target) throws IOException {
 		int readTotal = 0;
-		if (shakeHands()) {
+		if (shakeHands() && !isClosed) {
 			// first try to read from the buffer
 			if (readBuffer.remainingData() > 0) {
 				long read = readBuffer.read(target);
@@ -218,7 +222,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	@Override
 	public long write(be.nabu.utils.io.api.ByteBuffer source) throws IOException {
 		long writeTotal = 0;
-		if (shakeHands()) {
+		if (shakeHands() && !isClosed) {
 			application.clear();
 			while (source.remainingData() > 0 && writeBuffer.remainingData() == 0) {
 				long amount = Math.min(source.remainingData(), application.capacity());
