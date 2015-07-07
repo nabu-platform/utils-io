@@ -26,6 +26,7 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 	private char [] stringifyBuffer;
 	private String remainder;
 	private String exactRegex;
+	private boolean longestMatch = true;
 	
 	public BackedDelimitedCharContainer(ReadableContainer<CharBuffer> parent, int bufferSize, String delimiter) {
 		this(parent, bufferSize, delimiter, delimiter.length(), false);
@@ -117,7 +118,27 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 				}
 				int delimiterStart = index;
 				// start from the end to find the delimiter match
-				while (index <= delimiterStart + delimiterSize && !stringContent.substring(delimiterStart, index + 1).matches(exactRegex)) {
+				boolean isMatched = false;
+				// don't go beyond the string obviously
+				while (index <= delimiterStart + delimiterSize && index < stringContent.length() - 1) {
+					if (stringContent.substring(delimiterStart, index + 1).matches(exactRegex)) {
+						// if it matches and we are not looking for the longest match, just stop 
+						if (!longestMatch) {
+							break;
+						}
+						// otherwise we toggle the matched boolean and continue until we no longer match
+						else {
+							isMatched = true;
+						}
+					}
+					else {
+						// if it does not match but we already had a match, we have found the longest match
+						if (isMatched) {
+							// we went one too far, deduct it
+							index--;
+							break;
+						}
+					}
 					index++;
 				}
 				matchedDelimiter = stringContent.substring(delimiterStart, index + 1);
@@ -195,4 +216,11 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 		return remainder;
 	}
 
+	public boolean isLongestMatch() {
+		return longestMatch;
+	}
+
+	public void setLongestMatch(boolean longestMatch) {
+		this.longestMatch = longestMatch;
+	}
 }

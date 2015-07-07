@@ -179,4 +179,20 @@ public class TestDelimitedCharContainer extends TestCase {
 		assertEquals("fields", IOUtils.toString(delimited));
 		assertNull(delimited.getMatchedDelimiter());
 	}
+	
+	public void testBackedDelimitedWithLineFeedMoreCombinations() throws IOException {
+		String string = "some\r\nfields\rright\nhere";
+		BackedDelimitedCharContainer delimited = new BackedDelimitedCharContainer(IOUtils.wrap(string), 30, "(\r\n|\n|\r)", 2);
+		assertEquals("some", IOUtils.toString(delimited));
+		assertEquals("\r\n", delimited.getMatchedDelimiter());
+		delimited = new BackedDelimitedCharContainer(IOUtils.wrap(delimited.getRemainder()), 30, "(\r\n|\n|\r)", 2);
+		assertEquals("fields", IOUtils.toString(delimited));
+		assertEquals("\r", delimited.getMatchedDelimiter());
+		delimited = new BackedDelimitedCharContainer(IOUtils.wrap(delimited.getRemainder()), 30, "(\r\n|\n|\r)", 2);
+		assertEquals("right", IOUtils.toString(delimited));
+		assertEquals("\n", delimited.getMatchedDelimiter());
+		delimited = new BackedDelimitedCharContainer(IOUtils.wrap(delimited.getRemainder()), 30, "(\r\n|\n|\r)", 2);
+		assertEquals("here", IOUtils.toString(delimited));
+		assertNull(delimited.getMatchedDelimiter());
+	}
 }
