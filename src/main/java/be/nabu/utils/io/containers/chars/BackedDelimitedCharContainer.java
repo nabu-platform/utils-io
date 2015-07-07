@@ -111,7 +111,7 @@ public class BackedDelimitedCharContainer extends BasePushbackContainer<CharBuff
 				int index = 0;
 				buffer.truncate();
 				char [] single = new char[1];
-				while(index < stringContent.length() - 1 && !stringContent.substring(index).matches("(?s)^" + exactRegex + ".*$")) {	// && !stringContent.substring(index + 1).matches(exactRegex))
+				while(index < stringContent.length() - 1 && !stringContent.substring(index, index + delimiterSize).matches("(?s)^" + exactRegex + ".*$")) {	// && !stringContent.substring(index + 1).matches(exactRegex))
 					single[0] = stringContent.charAt(index);
 					buffer.write(single);
 					index++;
