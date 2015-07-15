@@ -2,11 +2,7 @@ package be.nabu.utils.io.containers.bytes;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.security.cert.CertPath;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.util.Arrays;
 import java.util.Date;
 
 import javax.net.ssl.SSLContext;
@@ -82,11 +78,6 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		catch (SSLPeerUnverifiedException e) {
 			return null;
 		}
-	}
-	
-	public CertPath getPeerCertPath() throws CertificateException {
-		Certificate[] peerCertificates = getPeerCertificates();
-		return peerCertificates == null ? null : CertificateFactory.getInstance("X.509").generateCertPath(Arrays.asList(peerCertificates));
 	}
 	
 	public boolean shakeHands() throws IOException {
