@@ -96,6 +96,9 @@ public class IOUtils {
 			size = (int) copyBytes(container, dynamicBuffer);
 			container = dynamicBuffer;
 		}
+		if (size == -1) {
+			return null;
+		}
 		byte [] bytes = new byte[size];
 		StaticByteBuffer buffer = new StaticByteBuffer(bytes, false);
 		long copied = 0;
