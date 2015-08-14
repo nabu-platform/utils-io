@@ -201,15 +201,16 @@ public class IOUtils {
 		// if the output is limited and we know the limit, only read as much as you can write from the input
 		// otherwise we are forced to throw an exception when the output is not big enough
 		LimitedWritableContainer<T> limitedOutput = output instanceof LimitedWritableContainer ? (LimitedWritableContainer<T>) output : null;
+		T target = buffer;
 		// resize buffer
 		if (limitedOutput != null) {
 			if (limitedOutput.remainingSpace() == 0)
 				return 0;
 			else if (limitedOutput.remainingSpace() < buffer.remainingSpace())
-				buffer = buffer.getFactory().newInstance(limitedOutput.remainingSpace(), true);
+				target = buffer.getFactory().limit(buffer, null, limitedOutput.remainingSpace());
 		}
-		while ((read = input.read(buffer)) > 0) {
-			long written = output.write(buffer);
+		while ((read = input.read(target)) > 0) {
+			long written = output.write(target);
 			if (written != read)
 				throw new IOException("The output container of type " + output.getClass().getName() + " is not big enough to copy the input to");
 			totalCopied += read;
@@ -217,8 +218,8 @@ public class IOUtils {
 			if (limitedOutput != null) {
 				if (limitedOutput.remainingSpace() == 0)
 					break;
-				else if (limitedOutput.remainingSpace() < buffer.remainingSpace())
-					buffer = buffer.getFactory().newInstance(limitedOutput.remainingSpace(), true);
+				else if (limitedOutput.remainingSpace() < target.remainingSpace())
+					target = buffer.getFactory().limit(buffer, null, limitedOutput.remainingSpace());
 			}
 		}
 		return totalCopied;
