@@ -225,7 +225,7 @@ public class IOUtils {
 					target = buffer.getFactory().limit(buffer, null, limitedOutput.remainingSpace());
 			}
 		}
-		return totalCopied == 0 && read == -1 ? -1 : totalCopied;
+		return totalCopied;
 	}
 	
 	public static ByteBuffer newByteBuffer() {
