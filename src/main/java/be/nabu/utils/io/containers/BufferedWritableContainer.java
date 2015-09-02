@@ -10,6 +10,7 @@ public class BufferedWritableContainer<T extends Buffer<T>> implements WritableC
 	private WritableContainer<T> parent;
 	private T buffer;
 	private boolean closed = false;
+	private boolean allowPartialFlush = false;
 	
 	public BufferedWritableContainer(WritableContainer<T> parent, T buffer) {
 		this.parent = parent;
@@ -45,9 +46,29 @@ public class BufferedWritableContainer<T extends Buffer<T>> implements WritableC
 	@Override
 	public void flush() throws IOException {
 		parent.write(buffer);
-		if (buffer.remainingData() > 0)
-			throw new IOException("Could not flush the entire buffer to the parent");
+		if (buffer.remainingData() > 0 && !allowPartialFlush) {
+			throw new IOException("Could not flush the entire buffer to the parent " + parent + " (allow partial: " + allowPartialFlush + "), " + buffer.remainingData() + " remaining");
+		}
 		parent.flush();
 	}
 
+	public boolean isAllowPartialFlush() {
+		return allowPartialFlush;
+	}
+
+	public void setAllowPartialFlush(boolean allowPartialFlush) {
+		this.allowPartialFlush = allowPartialFlush;
+	}
+	
+	public long getActualBufferSize() {
+		return buffer.remainingData();
+	}
+	
+	public long getMaxBufferSize() {
+		return buffer.remainingData() + buffer.remainingSpace();
+	}
+	
+	public long getRemainingBufferSize() {
+		return buffer.remainingSpace();
+	}
 }
