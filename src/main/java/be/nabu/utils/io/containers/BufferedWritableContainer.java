@@ -28,8 +28,12 @@ public class BufferedWritableContainer<T extends Buffer<T>> implements WritableC
 	public long write(T buffer) throws IOException {
 		int totalWritten = 0;
 		while (buffer.remainingData() > 0) {
-			if (this.buffer.remainingSpace() == 0)
-				parent.write(this.buffer);
+			if (this.buffer.remainingSpace() == 0) {
+				if (parent.write(this.buffer) == -1) {
+					closed = true;
+					break;
+				}
+			}
 			long written = this.buffer.write(buffer);
 			if (written == -1) {
 				closed = true;

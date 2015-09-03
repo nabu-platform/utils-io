@@ -3,8 +3,8 @@ package be.nabu.utils.io.containers.bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
-import java.util.Arrays;
 
+import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.Container;
 
 public class ByteChannelContainer<T extends ByteChannel> implements Container<be.nabu.utils.io.api.ByteBuffer> {
@@ -12,9 +12,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 	private T channel;
 	private byte [] bytes = new byte[4096];
 	private boolean isClosed;
-	private byte [] writeBuffer;
-	private boolean bufferOutput = false;
-	
+
 	public ByteChannelContainer(T channel) {
 		this.channel = channel;
 	}
@@ -24,7 +22,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 	}
 
 	@Override
-	public synchronized long read(be.nabu.utils.io.api.ByteBuffer target) throws IOException {
+	public long read(be.nabu.utils.io.api.ByteBuffer target) throws IOException {
 		if (isClosed()) {
 			return -1;
 		}
@@ -56,7 +54,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 	}
 
 	@Override
-	public synchronized long write(be.nabu.utils.io.api.ByteBuffer source) throws IOException {
+	public long write(be.nabu.utils.io.api.ByteBuffer source) throws IOException {
 		if (isClosed()) {
 			return -1;
 		}
@@ -64,44 +62,17 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 			return 0;
 		}
 		long totalWritten = 0;
-		if (writeBuffer != null) {
-			int write = channel.write(ByteBuffer.wrap(writeBuffer, 0, writeBuffer.length));
-			if (write == -1) {
-				channel.close();
-				isClosed = true;
-				return -1;
-			}
-			// still data in the buffer and we can't write it out, hold it
-			else if (write == 0) {
-				return 0;
-			}
-			// could only write it out partially
-			else if (write < writeBuffer.length) {
-				writeBuffer = Arrays.copyOfRange(writeBuffer, write, writeBuffer.length);
-				return write;
-			}
-			// fully written out
-			else {
-				totalWritten += write;
-				writeBuffer = null;
-			}
-		}
 		while (source.remainingData() > 0) {
-			int read = source.read(bytes, 0, (int) Math.min(bytes.length, source.remainingData()));
-			int write = channel.write(ByteBuffer.wrap(bytes, 0, read));
-			if (write >= 0 && write != read) {
-				if (bufferOutput) {
-					writeBuffer = Arrays.copyOfRange(bytes, write, read);
-					totalWritten += write;
-					break;
-				}
-				else {
-					throw new IOException("Could not push all the data to the channel: " + write + "/" + read + " (remaining: " + source.remainingData() + ")");
-				}
+			int read = (int) source.peek(IOUtils.wrap(bytes, false));
+			int written = channel.write(ByteBuffer.wrap(bytes, 0, read));
+			// skip the data that was successfully written
+			source.skip(written);
+			totalWritten += written;
+			if (written != read) {
+				break;
 			}
-			totalWritten += read;
 		}
-		return totalWritten;
+		return totalWritten == 0 && isClosed() ? -1 : totalWritten;
 	}
 
 	@Override
@@ -119,13 +90,5 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 
 	void setClosed(boolean isClosed) {
 		this.isClosed = isClosed;
-	}
-
-	public boolean isBufferOutput() {
-		return bufferOutput;
-	}
-
-	public void setBufferOutput(boolean bufferOutput) {
-		this.bufferOutput = bufferOutput;
 	}
 }
