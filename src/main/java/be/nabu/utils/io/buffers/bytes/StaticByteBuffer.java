@@ -42,6 +42,9 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 	}
 	
 	public StaticByteBuffer(byte [] bytes, int offset, int length, boolean containsData) {
+		if (bytes.length < offset + length) {
+			throw new IllegalArgumentException("Can not wrap byte array with length " + bytes.length + " and an offset of " + offset + " with a length of " + length);
+		}
 		this.bytes = bytes;
 		this.readPointer = offset;
 		this.writePointer = containsData ? offset + length : offset;
