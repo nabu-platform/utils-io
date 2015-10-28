@@ -213,8 +213,11 @@ public class IOUtils {
 				target = buffer.getFactory().limit(buffer, null, limitedOutput.remainingSpace());
 		}
 		while ((read = input.read(target)) > 0) {
-			long written = output.write(target);
-			if (written != read)
+			output.write(target);
+			// the reported amount of bytes written is currently a tricky issue, for example consider the chunked writable container, if you give it 5 bytes, it will first write a header saying that it is gonna write 5 bytes, then the actual bytes
+			// in all it might be 10 bytes written which is currently what he is reporting, this however can not be matched to the given 5 bytes
+			// it is safer to simply see if all data was read from the target
+			if (target.remainingData() > 0)
 				throw new IOException("The output container of type " + output.getClass().getName() + " is not big enough to copy the input to");
 			totalCopied += read;
 			// resize buffer
