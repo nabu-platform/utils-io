@@ -9,6 +9,8 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 	
 	private char [] buffer;
 	
+	private boolean closed;
+	
 	private int writePointer = 0, 
 		readPointer = -1;
 	
@@ -34,6 +36,9 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 	
 	@Override
 	public int write(char[] chars, int offset, int length) {
+		if (closed) {
+			return -1;
+		}
 		int amountWritten = 0;
 		int amountAvailable = 0;
 		while ((amountAvailable = Math.min(getWriteAmountAvailable(cycled, readPointer, writePointer), length)) > 0) {
@@ -93,7 +98,7 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 			this.cycled = cycled;
 			this.readPointer = readPointer;
 		}
-		return amountRead;
+		return amountRead == 0 && closed ? -1 : amountRead;
 	}
 
 	@Override
@@ -159,7 +164,7 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 				}
 			}
 		}
-		return amountWritten;
+		return amountWritten == 0 && closed ? -1 : amountWritten;
 	}
 
 	@Override
@@ -169,7 +174,7 @@ public class CyclicCharBuffer implements CharBuffer, PeekableContainer<CharBuffe
 
 	@Override
 	public void close() throws IOException {
-		// do nothing
+		closed = true;
 	}
 
 	@Override

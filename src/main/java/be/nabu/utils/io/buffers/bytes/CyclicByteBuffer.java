@@ -10,6 +10,8 @@ public class CyclicByteBuffer implements ByteBuffer, PeekableContainer<ByteBuffe
 	
 	private byte [] buffer;
 	
+	private boolean closed;
+	
 	private int writePointer = 0, 
 		readPointer = -1;
 	
@@ -35,6 +37,9 @@ public class CyclicByteBuffer implements ByteBuffer, PeekableContainer<ByteBuffe
 	
 	@Override
 	public int write(byte[] bytes, int offset, int length) {
+		if (closed) {
+			return -1;
+		}
 		int amountWritten = 0;
 		int amountAvailable = 0;
 		while ((amountAvailable = Math.min(getWriteAmountAvailable(cycled, readPointer, writePointer), length)) > 0) {
@@ -94,7 +99,7 @@ public class CyclicByteBuffer implements ByteBuffer, PeekableContainer<ByteBuffe
 			this.cycled = cycled;
 			this.readPointer = readPointer;
 		}
-		return amountRead;
+		return amountRead == 0 && closed ? -1 : amountRead;
 	}
 
 	@Override
@@ -160,7 +165,7 @@ public class CyclicByteBuffer implements ByteBuffer, PeekableContainer<ByteBuffe
 				}
 			}
 		}
-		return amountWritten;
+		return amountWritten == 0 && closed ? -1 : amountWritten;
 	}
 
 	@Override
@@ -170,7 +175,7 @@ public class CyclicByteBuffer implements ByteBuffer, PeekableContainer<ByteBuffe
 
 	@Override
 	public void close() throws IOException {
-		// do nothing
+		closed = true;
 	}
 
 	@Override

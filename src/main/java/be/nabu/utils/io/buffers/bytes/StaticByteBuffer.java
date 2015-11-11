@@ -22,6 +22,8 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 	private int writeEnd = -1;
 	private int readStart = 0;
 	
+	private boolean closed;
+	
 	/**
 	 * If the buffer has a parent, it is a read-only view of the parent
 	 */
@@ -91,7 +93,7 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 			buffer.write(getBytes(), readPointer, amountToRead);
 			readPointer += amountToRead;
 		}
-		return amountToRead == 0 && remainingSpace() == 0 && remainingData() == 0 ? -1 : amountToRead;
+		return amountToRead == 0 && (remainingSpace() == 0 || closed) && remainingData() == 0 ? -1 : amountToRead;
 	}
 
 	@Override
@@ -117,11 +119,14 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 		}
 		else
 			// if we couldn't read anything and you can't write anything anymore, stop
-			return remainingSpace() == 0 ? -1 : length;
+			return remainingSpace() == 0 || closed ? -1 : length;
 	}
 
 	@Override
 	public int write(byte[] bytes, int offset, int length) {
+		if (closed) {
+			return -1;
+		}
 		length = (int) Math.min(length, remainingSpace());
 		if (length > 0) {
 			System.arraycopy(bytes, offset, this.bytes, writePointer, length);
@@ -137,7 +142,7 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 	
 	@Override
 	public void close() throws IOException {
-		// do nothing
+		closed = true;
 	}
 
 	@Override
