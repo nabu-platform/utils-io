@@ -189,7 +189,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	@Override
 	public long read(be.nabu.utils.io.api.ByteBuffer target) throws IOException {
 		int readTotal = 0;
-		if (shakeHands() && !isClosed) {
+		if (!isClosed && shakeHands()) {
 			// first try to read from the buffer
 			if (readBuffer.remainingData() > 0) {
 				long read = readBuffer.read(target);
@@ -233,7 +233,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	@Override
 	public long write(be.nabu.utils.io.api.ByteBuffer source) throws IOException {
 		long writeTotal = 0;
-		if (shakeHands() && !isClosed) {
+		if (!isClosed && shakeHands()) {
 			application.clear();
 			while (source.remainingData() > 0 && writeBuffer.remainingData() == 0) {
 				long amount = Math.min(source.remainingData(), application.capacity());

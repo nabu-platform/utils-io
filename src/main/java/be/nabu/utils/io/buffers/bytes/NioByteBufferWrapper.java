@@ -47,14 +47,9 @@ public class NioByteBufferWrapper implements ByteBuffer {
 			wasReading = true;
 			buffer.flip();
 		}
-		int position = buffer.position();
-		int limit = buffer.limit();
 		int readSize = Math.min(length, buffer.remaining());
-		buffer.get(bytes, offset, readSize);
-		if (!updateState) {
-			buffer.position(position);
-			buffer.limit(limit);
-		}
+		java.nio.ByteBuffer source = updateState ? buffer : buffer.duplicate();
+		source.get(bytes, offset, readSize);
 		return closed && readSize == 0 ? -1 : readSize;
 	}
 
@@ -104,27 +99,37 @@ public class NioByteBufferWrapper implements ByteBuffer {
 		return read(buffer, true);
 	}
 	private long read(ByteBuffer target, boolean updateState) throws IOException {
+		if (!wasReading) {
+			wasReading = true;
+			buffer.flip();
+		}
 		int read = (int) Math.min(target.remainingSpace(), remainingData());
-		int position = buffer.position();
-		int limit = buffer.limit();
 		if (read == 0)
 			return closed ? -1 : read;
-		buffer.get(copyBuffer, 0, read);
-		if (!updateState) {
-			buffer.position(position);
-			buffer.limit(limit);
+		java.nio.ByteBuffer source = updateState ? this.buffer : this.buffer.duplicate();
+		int totalRead = 0;
+		while (read > 0) {
+			int readSize = Math.min(copyBuffer.length, read);
+			source.get(copyBuffer, 0, readSize);
+			target.write(copyBuffer, 0, readSize);
+			read -= readSize;
+			totalRead += readSize;
 		}
-		target.write(copyBuffer, 0, read);
-		return read;
+		return totalRead == 0 && closed ? -1 : totalRead;
 	}
 
 	@Override
 	public long write(ByteBuffer buffer) throws IOException {
+		if (wasReading) {
+			wasReading = false;
+			this.buffer.compact();
+		}
 		long total = 0;
 		while(buffer.remainingData() > 0) {
 			int read = (int) Math.min(buffer.remainingData(), remainingSpace());
 			if (read == 0)
 				break;
+			read = Math.min(read, copyBuffer.length);
 			buffer.read(copyBuffer, 0, read);
 			this.buffer.put(copyBuffer, 0, read);
 			total += read;
@@ -139,7 +144,7 @@ public class NioByteBufferWrapper implements ByteBuffer {
 
 	@Override
 	public long skip(long amount) throws IOException {
-		return write(getFactory().newSink(amount));
+		return read(getFactory().newSink(amount));
 	}
 	
 	@Override
