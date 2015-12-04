@@ -220,7 +220,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	public void close() throws IOException {
 		try {
 			engine.closeOutbound();
-			while (!engine.isOutboundDone()) {
+			while (!isClosed && !engine.isOutboundDone()) {
 				application.clear();
 				wrap(true);
 			}
