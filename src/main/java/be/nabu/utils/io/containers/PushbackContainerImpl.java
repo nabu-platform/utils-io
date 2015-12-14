@@ -16,21 +16,19 @@ public class PushbackContainerImpl<T extends Buffer<T>> extends BasePushbackCont
 	@Override
 	public long read(T target) throws IOException {
 		long totalRead = 0;
-		while (target.remainingSpace() > 0) {
-			long read = 0;
-			if (getBuffer() != null && getBuffer().remainingData() > 0)
-				read = getBuffer().read(target);
-			else
-				read = container.read(target);
+		if (getBuffer() != null && getBuffer().remainingData() > 0) {
+			totalRead += getBuffer().read(target);
+		}
+		if (target.remainingSpace() > 0) {
+			long read = container.read(target);
 			if (read == -1) {
-				if (totalRead == 0)
+				if (totalRead == 0) {
 					totalRead = -1;
-				break;
+				}
 			}
-			else if (read == 0)
-				break;
-			else
+			else {
 				totalRead += read;
+			}
 		}
 		return totalRead;
 	}
