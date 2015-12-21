@@ -37,4 +37,12 @@ public class CountingWritableContainerImpl<T extends Buffer<T>> implements Count
 	public void flush() throws IOException {
 		parent.flush();
 	}
+	
+	public void add(long value) {
+		writtenTotal += value;
+	}
+
+	public void setWrittenTotal(long value) {
+		this.writtenTotal = value;
+	}
 }
