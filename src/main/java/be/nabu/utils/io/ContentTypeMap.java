@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.FileNameMap;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -52,10 +53,18 @@ public class ContentTypeMap implements FileNameMap {
 		this.parent = parent;
 		InputStream input = url.openStream();
 		try {
-			Properties properties = new Properties();
-			properties.load(input);
-			for (Object key : properties.keySet())
-				registerContentType(key.toString(), properties.getProperty(key.toString()).split("[\\s]*,[\\s]*"));
+			byte[] bytes = IOUtils.toBytes(IOUtils.wrap(input));
+			for (String line : new String(bytes, "UTF-8").split("[\r\n]+")) {
+				if (line.trim().isEmpty() || line.trim().startsWith("#")) {
+					continue;
+				}
+				int indexOf = line.indexOf('=');
+				if (indexOf > 0) {
+					String contentType = line.substring(0, indexOf);
+					String extension = line.substring(indexOf + 1);
+					registerContentType(contentType, extension.split("[\\s]*,[\\s]*"));
+				}
+			}
 		}
 		finally {
 			input.close();
