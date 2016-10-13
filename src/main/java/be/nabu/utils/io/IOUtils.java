@@ -373,6 +373,9 @@ public class IOUtils {
 	public static <T extends Buffer<T>> ReadableContainer<T> blockUntilRead(ReadableContainer<T> parent, long amount) {
 		return new MinimalReadableContainer<T>(parent, amount);
 	}
+	public static <T extends Buffer<T>> ReadableContainer<T> blockUntilRead(ReadableContainer<T> parent, long amount, long timeout) {
+		return new MinimalReadableContainer<T>(parent, amount, timeout);
+	}
 	
 	public static <T extends Buffer<T>> WritableContainer<T> blockUntilWritten(WritableContainer<T> parent) {
 		return blockUntilWritten(parent,  1);

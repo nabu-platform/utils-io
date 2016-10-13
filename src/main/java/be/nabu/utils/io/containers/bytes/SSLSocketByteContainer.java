@@ -31,7 +31,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	private SSLContext context;
 	private ByteBuffer application, networkIn, networkOut;
 	private Date handshakeStarted;
-	private Long handshakeTimeout;
+	private Long handshakeTimeout, readTimeout;
 	
 	private be.nabu.utils.io.api.ByteBuffer writeBuffer = IOUtils.newByteBuffer(),
 			readBuffer = IOUtils.newByteBuffer();
@@ -157,7 +157,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			// there is still some room left, read more
 			if (networkIn.hasRemaining()) {
 				// only block if there is no data at all in the network buffer
-				ReadableContainer<be.nabu.utils.io.api.ByteBuffer> readable = block && networkIn.remaining() == networkIn.capacity() ? IOUtils.blockUntilRead(parent) : parent;
+				ReadableContainer<be.nabu.utils.io.api.ByteBuffer> readable = block && networkIn.remaining() == networkIn.capacity() ? IOUtils.blockUntilRead(parent, 1, getReadTimeout()) : parent;
 				long read = readable.read(new NioByteBufferWrapper(networkIn, false));
 				if (read == -1) {
 					isClosed = true;
@@ -266,5 +266,18 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 
 	public void setHandshakeTimeout(Long handshakeTimeout) {
 		this.handshakeTimeout = handshakeTimeout;
+	}
+	
+	public Long getReadTimeout() {
+		if (readTimeout == null) {
+			// it is possible to generate a read timeout between frames because of the "block until read"
+			// this is the timeout for how long it will wait, 15 seconds by default
+			readTimeout = Long.parseLong(System.getProperty("ssl.read.timeout", "15000"));
+		}
+		return readTimeout;
+	}
+
+	public void setReadTimeout(Long readTimeout) {
+		this.readTimeout = readTimeout;
 	}
 }
