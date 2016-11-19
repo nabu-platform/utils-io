@@ -32,11 +32,13 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	private ByteBuffer application, networkIn, networkOut;
 	private Date handshakeStarted;
 	private Long handshakeTimeout, readTimeout;
+	private boolean isStartTls;
 	
 	private be.nabu.utils.io.api.ByteBuffer writeBuffer = IOUtils.newByteBuffer(),
 			readBuffer = IOUtils.newByteBuffer();
 	
 	private boolean isClosed;
+	private boolean isClient;
 	
 	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, SSLServerMode serverMode) throws SSLException {
 		this(parent, context, false);
@@ -50,6 +52,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, boolean isClient) throws SSLException {
 		this.parent = parent;
 		this.context = context;
+		this.isClient = isClient;
 		this.engine = context.createSSLEngine();
 		
 		engine.setUseClientMode(isClient);
@@ -232,6 +235,11 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 
 	@Override
 	public long write(be.nabu.utils.io.api.ByteBuffer source) throws IOException {
+		// if we are in start tls mode, the handshake (which is initiated by the client) is NOT started yet
+		// and the server wants to write something out, do this in plain text, it is probably the confirmation that TLS can be started
+		if (isStartTls && !isClient && handshakeStarted == null) {
+			return parent.write(source);
+		}
 		long writeTotal = 0;
 		if (!isClosed && shakeHands()) {
 			application.clear();
@@ -280,4 +288,13 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	public void setReadTimeout(Long readTimeout) {
 		this.readTimeout = readTimeout;
 	}
+
+	public boolean isStartTls() {
+		return isStartTls;
+	}
+
+	public void setStartTls(boolean isStartTls) {
+		this.isStartTls = isStartTls;
+	}
+	
 }
