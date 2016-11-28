@@ -18,7 +18,7 @@ public class ReadOnlyFileWrapper implements ReadableContainer<ByteBuffer>, Limit
 	private long readPointer = 0;
 	private long markPointer = 0;
 	protected boolean closed = false;
-	protected byte [] buffer = new byte[4096];
+	protected byte [] buffer = new byte[16384];
 	private String mode;
 	private boolean closeOnFullyRead = false;
 	
@@ -115,6 +115,7 @@ public class ReadOnlyFileWrapper implements ReadableContainer<ByteBuffer>, Limit
 		ReadOnlyFileWrapper wrapper = new ReadOnlyFileWrapper(file);
 		if (!reset)
 			wrapper.readPointer = readPointer;
+		wrapper.closeOnFullyRead = true;
 		return wrapper;
 	}
 
