@@ -229,6 +229,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			}
 		}
 		finally {
+			isClosed = true;
 			parent.close();
 		}
 	}

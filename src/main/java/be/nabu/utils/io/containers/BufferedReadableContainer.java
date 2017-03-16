@@ -24,6 +24,7 @@ public class BufferedReadableContainer<T extends Buffer<T>> implements ReadableC
 	
 	@Override
 	public void close() throws IOException {
+		closed = true;
 		parent.close();
 	}
 

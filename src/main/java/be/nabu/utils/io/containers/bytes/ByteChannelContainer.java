@@ -30,7 +30,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 			return 0;
 		}
 		long totalRead = 0;
-		while (target.remainingSpace() > 0) {
+		while (!isClosed && target.remainingSpace() > 0) {
 			int read = channel.read(ByteBuffer.wrap(bytes, 0, (int) Math.min(bytes.length, target.remainingSpace())));
 			if (read == -1) {
 				isClosed = true;
@@ -62,7 +62,7 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 			return 0;
 		}
 		long totalWritten = 0;
-		while (source.remainingData() > 0) {
+		while (!isClosed && source.remainingData() > 0) {
 			int read = (int) source.peek(IOUtils.wrap(bytes, false));
 			int written = channel.write(ByteBuffer.wrap(bytes, 0, read));
 			// skip the data that was successfully written
