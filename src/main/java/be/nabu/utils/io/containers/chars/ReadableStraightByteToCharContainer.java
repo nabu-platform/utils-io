@@ -6,6 +6,7 @@ import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.ByteBuffer;
 import be.nabu.utils.io.api.CharBuffer;
 import be.nabu.utils.io.api.ReadableContainer;
+import be.nabu.utils.io.buffers.bytes.ByteBufferFactory;
 
 /**
  * Performs a 1-1 mapping from bytes to chars where the exact byte value is translated to a char
@@ -14,9 +15,10 @@ import be.nabu.utils.io.api.ReadableContainer;
 public class ReadableStraightByteToCharContainer implements ReadableContainer<CharBuffer> {
 
 	private ReadableContainer<ByteBuffer> bytes;
-
-	private byte [] singleByte = new byte[1];
-	private char [] singleChar = new char[1];
+	private boolean closed;
+	
+	private byte [] byteBuffer = new byte[8096];
+	private char [] charBuffer = new char[8096];
 	
 	public ReadableStraightByteToCharContainer(ReadableContainer<ByteBuffer> bytes) {
 		this.bytes = bytes;
@@ -29,16 +31,16 @@ public class ReadableStraightByteToCharContainer implements ReadableContainer<Ch
 
 	@Override
 	public long read(CharBuffer target) throws IOException {
-		long totalRead = 0;
-		while (target.remainingSpace() > 0) {
-			long read = bytes.read(IOUtils.wrap(singleByte, false));
-			if (read == -1)
-				return totalRead == 0 ? -1 : totalRead;
-			else if (read == 0)
-				break;
-			singleChar[0] = (char) (singleByte[0] & 0xff);
-			totalRead += target.write(singleChar);
+		long read = bytes.read(ByteBufferFactory.getInstance().limit(IOUtils.wrap(byteBuffer, false), null, Math.min(byteBuffer.length, target.remainingSpace())));
+		if (read < 0) {
+			closed = true;
 		}
-		return totalRead;
+		else {
+			for (int i = 0; i < read; i++) {
+				charBuffer[i] = (char) (byteBuffer[i] & 0xff);
+			}
+			target.write(charBuffer, 0, (int) read);
+		}
+		return read <= 0 && closed ? -1 : read;
 	}
 }
