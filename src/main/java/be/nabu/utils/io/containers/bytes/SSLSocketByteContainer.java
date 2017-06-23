@@ -1,15 +1,24 @@
 package be.nabu.utils.io.containers.bytes;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.nio.channels.SocketChannel;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import be.nabu.utils.io.IOUtils;
@@ -39,6 +48,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	
 	private boolean isClosed;
 	private boolean isClient;
+	private String hostName;
 	
 	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, SSLServerMode serverMode) throws SSLException {
 		this(parent, context, false);
@@ -50,9 +60,14 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	}
 	
 	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, boolean isClient) throws SSLException {
+		this(parent, context, isClient, null);
+	}
+	
+	public SSLSocketByteContainer(Container<be.nabu.utils.io.api.ByteBuffer> parent, SSLContext context, boolean isClient, String hostName) throws SSLException {
 		this.parent = parent;
 		this.context = context;
 		this.isClient = isClient;
+		this.hostName = hostName;
 		this.engine = context.createSSLEngine();
 		
 		engine.setUseClientMode(isClient);
@@ -86,11 +101,33 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	public boolean shakeHands() throws IOException {
 		// start the handshake if we haven't yet
 		if (handshakeStarted == null) {
+			if (isClient) {
+				if (hostName == null) {
+					SocketAddress remoteAddress = null;
+					if (this.parent instanceof ByteChannelContainer) {
+						ByteChannel channel = ((ByteChannelContainer<?>) parent).getChannel();
+						if (channel instanceof SocketChannel) {
+							remoteAddress = ((SocketChannel) channel).socket().getRemoteSocketAddress();
+						}
+					}
+					if (remoteAddress instanceof InetSocketAddress) {
+						hostName = ((InetSocketAddress) remoteAddress).getHostName();
+					}
+				}
+				// add support for SNI
+				if (hostName != null) {
+					List<SNIServerName> serverNames = new ArrayList<SNIServerName>();
+					serverNames.add(new SNIHostName(hostName));
+					SSLParameters sslParameters = new SSLParameters();
+					sslParameters.setServerNames(serverNames);
+					engine.setSSLParameters(sslParameters);
+				}
+			}
 			engine.beginHandshake();
 			handshakeStarted = new Date();
 		}
 		// the handshake status will revert to NOT_HANDSHAKING after it is finished
-		handshake: while (engine.getHandshakeStatus() != HandshakeStatus.FINISHED && engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING) {
+		handshake: while (!isClosed && engine.getHandshakeStatus() != HandshakeStatus.FINISHED && engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING) {
 			if (new Date().getTime() > handshakeStarted.getTime() + getHandshakeTimeout()) {
 				throw new SSLException("Handshaked timed out");
 			}
