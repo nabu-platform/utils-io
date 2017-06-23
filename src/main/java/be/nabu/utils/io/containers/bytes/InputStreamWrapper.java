@@ -10,6 +10,7 @@ public class InputStreamWrapper implements ReadableContainer<ByteBuffer> {
 
 	private InputStream input;
 	private byte [] buffer = new byte[4096];
+	private boolean closed;
 	
 	public InputStreamWrapper(InputStream input) {
 		this.input = input;
@@ -23,12 +24,11 @@ public class InputStreamWrapper implements ReadableContainer<ByteBuffer> {
 	@Override
 	public long read(ByteBuffer target) throws IOException {
 		long totalRead = 0;
-		while (target.remainingSpace() > 0) {
+		while (!closed && target.remainingSpace() > 0) {
 			int requestedData = (int) Math.min(buffer.length, target.remainingSpace());
 			int read = input.read(buffer, 0, requestedData);
-			if (read == -1) {
-				if (totalRead == 0)
-					totalRead = -1;
+			if (read < 0) {
+				closed = true;
 				break;
 			}
 			else
@@ -41,7 +41,7 @@ public class InputStreamWrapper implements ReadableContainer<ByteBuffer> {
 			if (read < requestedData)
 				break;
 		}
-		return totalRead;
+		return totalRead == 0 && closed ? -1 : totalRead;
 	}
 
 }

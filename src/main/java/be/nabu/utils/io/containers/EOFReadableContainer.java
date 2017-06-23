@@ -22,10 +22,13 @@ public class EOFReadableContainer<T extends Buffer<T>> implements ReadableContai
 
 	@Override
 	public long read(T target) throws IOException {
+		if (eof) {
+			return -1;
+		}
 		long read = parent.read(target);
-		if (read == -1)
+		if (read < 0)
 			eof = true;
-		return read == 0 && eof ? -1 : read;
+		return read <= 0 && eof ? -1 : read;
 	}
 	
 	public boolean isEOF() {
