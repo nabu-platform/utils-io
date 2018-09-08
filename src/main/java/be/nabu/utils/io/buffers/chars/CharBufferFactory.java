@@ -1,5 +1,7 @@
 package be.nabu.utils.io.buffers.chars;
 
+import javax.xml.bind.annotation.XmlTransient;
+
 import be.nabu.utils.io.api.BufferFactory;
 import be.nabu.utils.io.api.CharBuffer;
 import be.nabu.utils.io.buffers.LimitedCharBuffer;
@@ -7,7 +9,8 @@ import be.nabu.utils.io.buffers.LimitedCharBuffer;
 public class CharBufferFactory implements BufferFactory<CharBuffer> {
 
 	private static CharBufferFactory instance;
-	
+
+	@XmlTransient
 	public static CharBufferFactory getInstance() {
 		if (instance == null)
 			instance = new CharBufferFactory();
