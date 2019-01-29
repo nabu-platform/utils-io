@@ -147,7 +147,10 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				case NEED_TASK:
 					// don't offload to different thread
 					Runnable task = engine.getDelegatedTask();
-					task.run();
+					if (task != null) {
+						//ForkJoinPool.commonPool().submit(task);
+						task.run();
+					}
 				break;
 				// is finished
 				case FINISHED:
