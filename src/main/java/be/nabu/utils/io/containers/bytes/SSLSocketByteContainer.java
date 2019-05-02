@@ -39,7 +39,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	private SSLEngine engine;
 	private SSLContext context;
 	private ByteBuffer application, networkIn, networkOut;
-	private Date handshakeStarted;
+	private Date handshakeStarted, handshakeStopped;
 	private Long handshakeTimeout, readTimeout;
 	private boolean isStartTls;
 	
@@ -129,6 +129,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		// the handshake status will revert to NOT_HANDSHAKING after it is finished
 		handshake: while (!isClosed && engine.getHandshakeStatus() != HandshakeStatus.FINISHED && engine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING) {
 			if (new Date().getTime() > handshakeStarted.getTime() + getHandshakeTimeout()) {
+				handshakeStopped = new Date();
 				throw new SSLException("Handshaked timed out");
 			}
 			switch(engine.getHandshakeStatus()) {
@@ -156,6 +157,9 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				case FINISHED:
 				case NOT_HANDSHAKING:
 			}
+		}
+		if (handshakeStopped == null && !isClosed) {
+			handshakeStopped = new Date();
 		}
 		return !isClosed;
 	}
@@ -338,4 +342,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		this.isStartTls = isStartTls;
 	}
 	
+	public Long getHandshakeDuration() {
+		return handshakeStarted != null && handshakeStopped != null ? handshakeStopped.getTime() - handshakeStarted.getTime() : null;
+	}
 }
