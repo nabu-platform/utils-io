@@ -25,21 +25,20 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 	@Override
 	public long read(T target) throws IOException {
 		long totalRead = 0;
-		// no more data
-		if (active >= sources.length) {
-			if (totalRead == 0)
-				totalRead = -1;
-		}
-		else {
+		// as long as we have backing sources, get as much as possible
+		while (target.remainingSpace() > 0 && active < sources.length) { 
 			long read = sources[active].read(target);
 			if (read <= 0) {
 				if (closeIfRead)
 					sources[active].close();
 				active++;
-				return read(target);
 			}
 			else
 				totalRead += read;
+		}
+		// no more data
+		if (totalRead == 0 && active >= sources.length) {
+			totalRead = -1;
 		}
 		return totalRead;
 	}
