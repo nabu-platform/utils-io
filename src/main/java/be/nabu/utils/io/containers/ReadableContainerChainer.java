@@ -11,6 +11,7 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 	private ReadableContainer<T> [] sources;
 	private int active = 0;
 	private boolean closeIfRead = true;
+	private boolean allowEmptyReads = false;
 	
 	public ReadableContainerChainer(boolean closeIfRead, ReadableContainer<T>...sources) {
 		this.closeIfRead = closeIfRead;
@@ -28,10 +29,14 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 		// as long as we have backing sources, get as much as possible
 		while (target.remainingSpace() > 0 && active < sources.length) { 
 			long read = sources[active].read(target);
-			if (read <= 0) {
+			if (read < 0 || (read == 0 && !allowEmptyReads)) {
 				if (closeIfRead)
 					sources[active].close();
 				active++;
+			}
+			// currently the backing source has no more but maybe later, check back soon!
+			else if (read == 0) {
+				break;
 			}
 			else
 				totalRead += read;
@@ -42,5 +47,12 @@ public class ReadableContainerChainer<T extends Buffer<T>> implements ReadableCo
 		}
 		return totalRead;
 	}
-	
+
+	public boolean isAllowEmptyReads() {
+		return allowEmptyReads;
+	}
+
+	public void setAllowEmptyReads(boolean allowEmptyReads) {
+		this.allowEmptyReads = allowEmptyReads;
+	}
 }
