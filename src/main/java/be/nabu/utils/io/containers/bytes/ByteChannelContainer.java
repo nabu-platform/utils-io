@@ -31,8 +31,22 @@ public class ByteChannelContainer<T extends ByteChannel> implements Container<be
 		}
 		long totalRead = 0;
 		while (!isClosed && target.remainingSpace() > 0) {
+			// there is an edge case in large volumes that sometimes a socket keeps getting activated by a READ signal but never stops
+			// this is usually a case of an EOF not being interpreted correctly but there does not appear to be an EOF problem up the stack (except perhaps a problem in the SSLEngine with a package larger than package size)
+			// before the check was specifically for -1, now it's been broadened to anything negative (see comments below)
 			int read = channel.read(ByteBuffer.wrap(bytes, 0, (int) Math.min(bytes.length, target.remainingSpace())));
-			if (read == -1) {
+			/*
+			 * EOF = -1;              // End of file
+				UNAVAILABLE = -2;      // Nothing available (non-blocking)
+				INTERRUPTED = -3;      // System call interrupted
+				UNSUPPORTED = -4;      // Operation not supported
+				THROWN = -5;           // Exception thrown in JNI code
+				UNSUPPORTED_CASE = -6; // This case not supported
+				
+				judging from the source, "unavailable" is always converted into a 0, interrupted is only sent back _if_ the channel is no longer isOpen()
+				in theory the others could be returned at any point, especially the THROWN looks suspicious
+			 */
+			if (read < 0) {
 				isClosed = true;
 				break;
 			}

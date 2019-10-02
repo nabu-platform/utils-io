@@ -206,8 +206,12 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 				// only block if there is no data at all in the network buffer
 				ReadableContainer<be.nabu.utils.io.api.ByteBuffer> readable = block && networkIn.remaining() == networkIn.capacity() ? IOUtils.blockUntilRead(parent, 1, getReadTimeout()) : parent;
 				long read = readable.read(new NioByteBufferWrapper(networkIn, false));
-				if (read == -1) {
+				if (read < 0) {
 					isClosed = true;
+				}
+				// if we read no new data and we were already in an underflow situation, we should stop trying to read more
+				if (!block && read == 0 && result != null && result.getStatus().equals(SSLEngineResult.Status.BUFFER_UNDERFLOW)) {
+					break;
 				}
 			}
 			// if no data has been read, stop
