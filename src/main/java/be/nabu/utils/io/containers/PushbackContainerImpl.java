@@ -9,6 +9,7 @@ public class PushbackContainerImpl<T extends Buffer<T>> extends BasePushbackCont
 
 	private ReadableContainer<T> container;
 	private boolean closed;
+	private boolean read;
 	
 	public PushbackContainerImpl(ReadableContainer<T> container) {
 		this.container = container;
@@ -16,6 +17,7 @@ public class PushbackContainerImpl<T extends Buffer<T>> extends BasePushbackCont
 	
 	@Override
 	public long read(T target) throws IOException {
+		read = true;
 		long totalRead = 0;
 		if (getBuffer() != null && getBuffer().remainingData() > 0) {
 			totalRead += getBuffer().read(target);
@@ -38,4 +40,11 @@ public class PushbackContainerImpl<T extends Buffer<T>> extends BasePushbackCont
 		container.close();
 	}
 
+	public boolean isRead() {
+		return read;
+	}
+
+	public void setRead(boolean read) {
+		this.read = read;
+	}
 }
