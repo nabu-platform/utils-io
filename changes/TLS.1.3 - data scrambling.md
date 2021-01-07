@@ -6,6 +6,10 @@ Upon studying the results further, the CSS was coming in without chunking issues
 
 # Research
 
+An interesting observation to make is that while the problem only occurs if SSL is enabled, SSL itself is _not_ causing any issue, meaning all the data is correctly encrypted/decrypted and the handshakes are still working etc.
+
+Is is the application data that is getting scrambled, leading to invalid chunks (if it is chunked) or just scrambled messages in general.
+
 After checking a lot of other possible causes, it appeared that the java version being used was one managed by the debian server.
 This java version had been automatically updated to 8.275.
 Without checking further (deadlines), I rolled back to an older version and it worked again.
