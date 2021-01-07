@@ -38,7 +38,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 	private Container<be.nabu.utils.io.api.ByteBuffer> parent;
 	private SSLEngine engine;
 	private SSLContext context;
-	private ByteBuffer application, networkIn, networkOut;
+	private ByteBuffer applicationIn, applicationOut, networkIn, networkOut;
 	private Date handshakeStarted, handshakeStopped;
 	private Long handshakeTimeout, readTimeout;
 	private boolean isStartTls;
@@ -72,7 +72,8 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		
 		engine.setUseClientMode(isClient);
 		
-		application = ByteBuffer.allocate(engine.getSession().getApplicationBufferSize());
+		applicationIn = ByteBuffer.allocate(engine.getSession().getApplicationBufferSize());
+		applicationOut = ByteBuffer.allocate(engine.getSession().getApplicationBufferSize());
 		networkIn = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
 		networkOut = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
 	}
@@ -174,7 +175,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		if (write >= 0 && writeBuffer.remainingData() == 0) {
 			do {
 				networkOut.clear();
-				result = engine.wrap(application, networkOut);
+				result = engine.wrap(applicationOut, networkOut);
 				networkOut.flip();
 				WritableContainer<be.nabu.utils.io.api.ByteBuffer> writable = block ? IOUtils.blockUntilWritten(parent, networkOut.remaining()) : parent;
 				write = writable.write(new NioByteBufferWrapper(networkOut, true));
@@ -221,13 +222,13 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 			// if there is still no data, stop
 			if (!networkIn.hasRemaining())
 				break;
-			application.clear();
-			result = engine.unwrap(networkIn, application);
-			application.flip();
+			applicationIn.clear();
+			result = engine.unwrap(networkIn, applicationIn);
+			applicationIn.flip();
 			networkIn.compact();
 			// write it all to the buffer
-			totalRead += IOUtils.wrap(application, true).read(readBuffer);
-			if (application.remaining() != 0) {
+			totalRead += IOUtils.wrap(applicationIn, true).read(readBuffer);
+			if (applicationIn.remaining() != 0) {
 				throw new IOException("Could not copy the application buffer to the target read buffer");
 			}
 			//IOUtils.copyBytes(IOUtils.wrap(application, true), readBuffer);
@@ -272,9 +273,16 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		try {
 			engine.closeOutbound();
 			while (!isClosed && !engine.isOutboundDone()) {
-				application.clear();
+				applicationOut.clear();
 				wrap(true);
 			}
+			
+			// NOT ACTIVE: check the TLS 1.3 notes in the changes folder
+//			engine.closeInbound();
+//			while (!engine.isInboundDone()) {
+//				applicationIn.clear();
+//				unwrap(true);
+//			}
 		}
 		finally {
 			isClosed = true;
@@ -291,17 +299,16 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		}
 		long writeTotal = 0;
 		if (!isClosed && shakeHands()) {
-			application.clear();
 			while (source.remainingData() > 0 && writeBuffer.remainingData() == 0) {
-				long amount = Math.min(source.remainingData(), application.capacity());
-				IOUtils.copyBytes(IOUtils.limitReadable(source, amount), IOUtils.wrap(application, false));
+				long amount = Math.min(source.remainingData(), applicationOut.remaining());
+				IOUtils.copyBytes(IOUtils.limitReadable(source, amount), IOUtils.wrap(applicationOut, false));
 //				application.put(bytes, offset, amount);
-				application.flip();
+				applicationOut.flip();
 				if (wrap(true) == -1) {
 					isClosed = true;
 					break;
 				}
-				application.compact();
+				applicationOut.compact();
 				writeTotal += amount;
 			}
 		}
