@@ -14,6 +14,7 @@ public class DeblockingInputStream implements AutoCloseable {
 	private InputStream input;
 	private Thread thread;
 	private List<Thread> ioThreads = new ArrayList<Thread>();
+	private boolean closed;
 	
 	public DeblockingInputStream(InputStream input) {
 		this.input = input;
@@ -50,6 +51,7 @@ public class DeblockingInputStream implements AutoCloseable {
 							}
 						}
 					}
+					closed = true;
 				}
 				catch (IOException e) {
 					try {
@@ -57,6 +59,12 @@ public class DeblockingInputStream implements AutoCloseable {
 					}
 					catch (Exception e1) {
 						// do nothing
+					}
+				}
+				finally {
+					// interrupt them all to stop them!
+					while (!ioThreads.isEmpty()) {
+						ioThreads.remove(ioThreads.size() - 1).interrupt();
 					}
 				}
 			}
@@ -72,11 +80,14 @@ public class DeblockingInputStream implements AutoCloseable {
 			private byte [] single = new byte[1];
 			@Override
 			public int available() throws IOException {
-				return (int) (closed ? 0 : deblockingBuffer.remainingData());
+				return (int) (isClosed() ? 0 : deblockingBuffer.remainingData());
 			}
 			@Override
 			public void close() throws IOException {
 				closed = true;
+			}
+			private boolean isClosed() {
+				return closed || DeblockingInputStream.this.closed;
 			}
 			@Override
 			public int read() throws IOException {
@@ -95,7 +106,7 @@ public class DeblockingInputStream implements AutoCloseable {
 				}
 				try {
 					// we wait as long as we have no data, we need to block
-					while (!closed && available() == 0) {
+					while (!isClosed() && available() == 0) {
 						try {
 							Thread.sleep(5000);
 						}
@@ -104,7 +115,7 @@ public class DeblockingInputStream implements AutoCloseable {
 							break;
 						}
 					}
-					if (closed) {
+					if (isClosed()) {
 						return -1;
 					}
 					else if (available() > 0) {
@@ -132,6 +143,7 @@ public class DeblockingInputStream implements AutoCloseable {
 
 	@Override
 	public void close() throws Exception {
+		closed = true;
 		input.close();
 	}
 }
