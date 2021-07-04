@@ -105,34 +105,40 @@ public class DeblockingInputStream implements AutoCloseable {
 					ioThreads.add(Thread.currentThread());
 				}
 				try {
+					int read = 0;
 					// we wait as long as we have no data, we need to block
-					while (!isClosed() && available() == 0) {
-						try {
-							Thread.sleep(5000);
+					while (!isClosed() && read == 0) {
+						if (available() == 0) {
+							try {
+								Thread.sleep(5000);
+							}
+							// interruptible I/O!
+							catch (InterruptedException e) {
+								// ignore
+							}
 						}
-						// interruptible I/O!
-						catch (InterruptedException e) {
-							break;
-						}
-					}
-					if (isClosed()) {
-						return -1;
-					}
-					else if (available() > 0) {
-						int read = deblockingBuffer.read(b, off, len);
+						read = deblockingBuffer.read(b, off, len);
 						// we read some data, go fetch some more!
 						thread.interrupt();
-						return read;
+						if (read < 0) {
+							closed = true;
+						}
+						if (read != 0) {
+							return read;
+						}
 					}
-					else {
-						return 0;
-					}
+					// other streams that wrap on top of this one do not always like a 0 :(
+					// especially the buffered reader for example
+//					else {
+//						return 0;
+//					}
 				}
 				finally {
 					synchronized (ioThreads) {
 						ioThreads.remove(Thread.currentThread());
 					}
 				}
+				return -1;
 			}
 			@Override
 			public int read(byte[] b) throws IOException {
