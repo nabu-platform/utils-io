@@ -56,7 +56,9 @@ public class EventfulContainerImpl<T extends Buffer<T>> implements Container<T>,
 	}
 	@Override
 	public EventfulSubscription availableData(EventfulSubscriber subscriber) {
-		availableDataSubscribers.add(subscriber);
+		synchronized(availableDataSubscribers) {
+			availableDataSubscribers.add(subscriber);
+		}
 		return new SubscriptionImplementation(subscriber, availableDataSubscribers);
 	}
 
@@ -64,35 +66,54 @@ public class EventfulContainerImpl<T extends Buffer<T>> implements Container<T>,
 		synchronized(availableDataSubscribers) {
 			// need new arraylist because we send in the subscription specifically to allow you to unsubscribe
 			for (EventfulSubscriber subscriber : new ArrayList<EventfulSubscriber>(availableDataSubscribers)) {
-				subscriber.on(new SubscriptionImplementation(subscriber, availableDataSubscribers));
+				try {
+					subscriber.on(new SubscriptionImplementation(subscriber, availableDataSubscribers));
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
 
 	@Override
 	public EventfulSubscription availableSpace(EventfulSubscriber subscriber) {
-		availableSpaceSubscribers.add(subscriber);
+		synchronized(availableSpaceSubscribers) {
+			availableSpaceSubscribers.add(subscriber);
+		}
 		return new SubscriptionImplementation(subscriber, availableSpaceSubscribers);
 	}
 	
 	private void fireAvailableSpace() {
 		synchronized(availableSpaceSubscribers) {
 			for (EventfulSubscriber subscriber : new ArrayList<EventfulSubscriber>(availableSpaceSubscribers)) {
-				subscriber.on(new SubscriptionImplementation(subscriber, availableSpaceSubscribers));
+				try {
+					subscriber.on(new SubscriptionImplementation(subscriber, availableSpaceSubscribers));
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
 
 	@Override
 	public EventfulSubscription closed(EventfulSubscriber subscriber) {
-		closedSubscribers.add(subscriber);
+		synchronized(closedSubscribers) {
+			closedSubscribers.add(subscriber);
+		}
 		return new SubscriptionImplementation(subscriber, closedSubscribers);
 	}
 	
 	private void fireClosed() {
 		synchronized(closedSubscribers) {
 			for (EventfulSubscriber subscriber : new ArrayList<EventfulSubscriber>(closedSubscribers)) {
-				subscriber.on(new SubscriptionImplementation(subscriber, closedSubscribers));
+				try {
+					subscriber.on(new SubscriptionImplementation(subscriber, closedSubscribers));
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		if (fireDataOnClose) {

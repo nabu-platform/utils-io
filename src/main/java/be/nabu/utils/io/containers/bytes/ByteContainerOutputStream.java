@@ -49,5 +49,10 @@ public class ByteContainerOutputStream extends OutputStream {
 	public void write(byte[] b) throws IOException {
 		write(b, 0, b.length);
 	}
+
+	@Override
+	public void flush() throws IOException {
+		container.flush();
+	}
 	
 }
