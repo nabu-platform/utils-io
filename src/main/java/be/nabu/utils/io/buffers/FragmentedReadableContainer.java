@@ -188,15 +188,31 @@ public class FragmentedReadableContainer<T extends Buffer<T>, S extends Buffer<T
 					data = getBackingArray(readIndex);
 				}
 			}
+			long read = 0;
 			// if we are peeking the data, the "buffer" has either more or less (or equal) space as the data
 			// if more space, we need to do readIndex++ to skip to the next data set
 			// if less (or equal) space, the buffer will fill out meaning remainingSpace() becomes 0 ending the loop
 			if (peek) {
-				totalRead += data.peek(buffer);
+				read = data.peek(buffer);
 				readIndex++;
 			}
 			else
-				totalRead += data.read(buffer);
+				read = data.read(buffer);
+
+			// this should not happen unless the remainingData has a bug in it or there is concurrency going on which is not supported
+			if (read == 0) {
+				throw new IllegalStateException("The backing array of type '" + data.getClass() + "' claimed data was available but could not provide any");
+			}
+			else if (read < 0) {
+				// if totalRead is larger than 0, you will figure out is is closed on the next run
+				if (totalRead == 0) {
+					totalRead = -1;
+				}
+				break;
+			}
+			else {
+				totalRead += read;
+			}
 		}
 		if (!peek)
 			this.readIndex = readIndex;

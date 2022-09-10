@@ -85,10 +85,11 @@ public class StaticByteBuffer implements ByteBuffer, ResettableContainer<ByteBuf
 	@Override
 	public long read(ByteBuffer buffer) throws IOException {
 		// you don't want to actually read anything
-		if (buffer.remainingSpace() == 0) {
+		long remainingSpace = buffer.remainingSpace();
+		if (remainingSpace == 0) {
 			return 0;
 		}
-		int amountToRead = (int) Math.min(remainingData(), buffer.remainingSpace());
+		int amountToRead = (int) Math.min(remainingData(), remainingSpace);
 		if (amountToRead > 0) {
 			buffer.write(getBytes(), readPointer, amountToRead);
 			readPointer += amountToRead;

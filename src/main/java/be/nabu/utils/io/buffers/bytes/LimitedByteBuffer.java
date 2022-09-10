@@ -56,8 +56,9 @@ public class LimitedByteBuffer implements ByteBuffer {
 
 	@Override
 	public long read(ByteBuffer buffer) throws IOException {
-		if (buffer.remainingSpace() > remainingData()) {
-			buffer = new LimitedByteBuffer(buffer, null, remainingData());
+		long remainingData = remainingData();
+		if (buffer.remainingSpace() > remainingData) {
+			buffer = new LimitedByteBuffer(buffer, null, remainingData);
 		}
 		long read = original.read(buffer);
 		maxRead -= read;
@@ -66,8 +67,9 @@ public class LimitedByteBuffer implements ByteBuffer {
 
 	@Override
 	public long write(ByteBuffer buffer) throws IOException {
-		if (buffer.remainingData() > remainingSpace()) {
-			buffer = new LimitedByteBuffer(buffer, remainingSpace(), null);
+		long remainingSpace = remainingSpace();
+		if (buffer.remainingData() > remainingSpace) {
+			buffer = new LimitedByteBuffer(buffer, remainingSpace, null);
 		}
 		long write = original.write(buffer);
 		maxWrite -= write;
@@ -76,8 +78,9 @@ public class LimitedByteBuffer implements ByteBuffer {
 
 	@Override
 	public long peek(ByteBuffer buffer) throws IOException {
-		if (buffer.remainingSpace() > remainingData()) {
-			buffer = new LimitedByteBuffer(buffer, null, remainingData());
+		long remainingData = remainingData();
+		if (buffer.remainingSpace() > remainingData) {
+			buffer = new LimitedByteBuffer(buffer, null, remainingData);
 		}
 		return original.peek(buffer);
 	}
