@@ -73,7 +73,7 @@ public class SSLSocketByteContainer implements Container<be.nabu.utils.io.api.By
 		engine.setUseClientMode(isClient);
 		
 		applicationIn = ByteBuffer.allocate(engine.getSession().getApplicationBufferSize());
-		applicationOut = ByteBuffer.allocate(engine.getSession().getApplicationBufferSize());
+		applicationOut = ByteBuffer.allocate(engine.getSession().getApplicationBufferSize() / 2);
 		networkIn = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
 		networkOut = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
 	}
