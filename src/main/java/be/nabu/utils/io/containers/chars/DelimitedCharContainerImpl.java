@@ -17,6 +17,13 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 	private boolean isRegex = false;
 	private int bufferSize;
 	private String matchedDelimiter = null;
+	// an escape sequence is tricky if it involves multiple characters, cause this would need to be accounted for in the bufferSize
+	// we might add this at some point but we likely won't need it, until then we support a single escape character, usually \
+	// we assume that an even amount of escape characters cancel each other out
+	private char escapeCharacter = 0;
+	
+	// whether we are currently in escaped mode, this is toggled on by the escape character and toggled off by the character behind it
+	private boolean escaped = false;
 	
 	public DelimitedCharContainerImpl(ReadableContainer<CharBuffer> parent, String delimiter) {
 		this.parent = parent;
@@ -57,9 +64,23 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 			return buffer.remainingData() > 0 ? buffer.read(target) : -1;
 			
 		int amountRead = 0;
-		long readFromParent = 0; 
+		long readFromParent = 0;
 		while (target.remainingSpace() > 0 && (readFromParent = parent.read(target.getFactory().limit(buffer, null, 1l))) == 1) {
 			String stringContent = new String(peek(buffer));
+			
+			// when we are in escape mode, we want to stream the next character (even if it is the escape character itself) unchanged
+			// if we are not in escape mode, we want to toggle the escape mode on if we encounter the escape character
+			// in that case, we also want to send the escape character!
+			if (escapeCharacter > 0 && (escaped || stringContent.charAt(stringContent.length() - 1) == escapeCharacter)) {
+				// reverse the escaped
+				escaped = !escaped;
+				
+				// get a single char from the buffer and put it in the target
+				buffer.read(target.getFactory().limit(target, null, 1l));
+				amountRead++;
+				continue;
+			}
+			
 			// check for a regex match
 			if (isRegex && stringContent.matches(delimiter)) {
 				// the regex may match only a part of the buffer
@@ -109,6 +130,14 @@ public class DelimitedCharContainerImpl implements ReadableContainer<CharBuffer>
 	@Override
 	public String getMatchedDelimiter() {
 		return matchedDelimiter;
+	}
+
+	public char getEscapeCharacter() {
+		return escapeCharacter;
+	}
+
+	public void setEscapeCharacter(char escapeCharacter) {
+		this.escapeCharacter = escapeCharacter;
 	}
 
 }

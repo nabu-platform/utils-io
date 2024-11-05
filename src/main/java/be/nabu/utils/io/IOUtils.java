@@ -315,7 +315,11 @@ public class IOUtils {
 			wrapWritable(bytes, charset)
 		);
 	}
-	
+	public static DelimitedCharContainer delimit(ReadableContainer<CharBuffer> parent, String delimiter, char escapeCharacter) {
+		DelimitedCharContainerImpl delimitedCharContainerImpl = new DelimitedCharContainerImpl(parent, delimiter);
+		delimitedCharContainerImpl.setEscapeCharacter(escapeCharacter);
+		return delimitedCharContainerImpl;
+	}
 	public static DelimitedCharContainer delimit(ReadableContainer<CharBuffer> parent, String delimiter) {
 		return new DelimitedCharContainerImpl(parent, delimiter);
 	}

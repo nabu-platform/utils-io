@@ -195,4 +195,9 @@ public class TestDelimitedCharContainer extends TestCase {
 		assertEquals("here", IOUtils.toString(delimited));
 		assertNull(delimited.getMatchedDelimiter());
 	}
+	
+	public void testDelimitedWithEscape() throws IOException {
+		String string = "escaped quote\\\"here\"nothere";
+		assertEquals("escaped quote\\\"here", (IOUtils.toString(IOUtils.delimit(IOUtils.wrap(string), "\"", '\\'))));
+	}
 }
