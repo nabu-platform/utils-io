@@ -17,8 +17,6 @@
 
 package be.nabu.utils.io.buffers.bytes;
 
-import javax.xml.bind.annotation.XmlTransient;
-
 import be.nabu.utils.io.api.BufferFactory;
 import be.nabu.utils.io.api.ByteBuffer;
 
@@ -26,7 +24,6 @@ public class ByteBufferFactory implements BufferFactory<ByteBuffer> {
 
 	private static ByteBufferFactory instance;
 	
-	@XmlTransient
 	public static ByteBufferFactory getInstance() {
 		if (instance == null)
 			instance = new ByteBufferFactory();
