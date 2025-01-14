@@ -25,7 +25,7 @@ public class NioByteBufferWrapper implements ByteBuffer {
 
 	private java.nio.ByteBuffer buffer;
 	
-	private byte [] copyBuffer = new byte[4096];
+	private byte [] copyBuffer = new byte[40960];
 	
 	private boolean closed = false;
 	

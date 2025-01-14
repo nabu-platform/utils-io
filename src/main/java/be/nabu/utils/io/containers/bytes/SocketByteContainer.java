@@ -23,6 +23,8 @@ import java.nio.channels.SocketChannel;
 
 public class SocketByteContainer extends ByteChannelContainer<SocketChannel> {
 	
+	private boolean finishedConnect = false;
+	
 	public SocketByteContainer(SocketAddress remote) throws IOException {
 		this(null, remote);
 	}
@@ -41,7 +43,10 @@ public class SocketByteContainer extends ByteChannelContainer<SocketChannel> {
 	
 	@Override
 	public boolean isReady() throws IOException {
-		return getChannel().finishConnect();
+		if (!finishedConnect) {
+			finishedConnect = getChannel().finishConnect();
+		}
+		return finishedConnect;	// should check that it is not closed? the parent already checks this though so currently (for THAT usecase) it doesn't matter... might matter if used in other scenarios...
 	}
 
 	@Override
